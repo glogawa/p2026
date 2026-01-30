@@ -1,6 +1,8 @@
 import { Redirect, Route } from 'react-router-dom';
-import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+import { IonApp, IonRouterOutlet, IonToast, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
+import { useEffect, useState } from 'react';
+import { Workbox } from 'workbox-window';
 import Home from './pages/Home';
 
 /* Core CSS required for Ionic components to work properly */
@@ -35,19 +37,61 @@ import './theme/variables.css';
 
 setupIonicReact();
 
-const App: React.FC = () => (
-  <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route exact path="/home">
-          <Home />
-        </Route>
-        <Route exact path="/">
-          <Redirect to="/home" />
-        </Route>
-      </IonRouterOutlet>
-    </IonReactRouter>
-  </IonApp>
-);
+const App: React.FC = () => {
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const wb = new Workbox('/sw.js');
+      wb.addEventListener('waiting', () => {
+        setUpdateAvailable(true);
+      });
+      wb.register();
+    }
+  }, []);
+
+  const reloadApp = () => {
+    const wb = new Workbox('/sw.js');
+    wb.messageSW({ type: 'SKIP_WAITING' }).then(() => {
+      window.location.reload();
+    });
+  };
+
+  const dismissUpdate = () => {
+    setUpdateAvailable(false);
+  };
+
+  return (
+    <IonApp>
+      <IonReactRouter>
+        <IonRouterOutlet>
+          <Route exact path="/home">
+            <Home />
+          </Route>
+          <Route exact path="/">
+            <Redirect to="/home" />
+          </Route>
+        </IonRouterOutlet>
+      </IonReactRouter>
+      <IonToast
+        isOpen={updateAvailable}
+        message="A new version is available. Reload to update."
+        position="bottom"
+        buttons={[
+          {
+            text: 'Reload',
+            role: 'cancel',
+            handler: () => reloadApp(),
+          },
+          {
+            text: 'Dismiss',
+            role: 'cancel',
+            handler: () => dismissUpdate(),
+          },
+        ]}
+      />
+    </IonApp>
+  );
+};
 
 export default App;
