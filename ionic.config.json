@@ -1,0 +1,7 @@
+{
+  "name": "p2026",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
