@@ -29,9 +29,12 @@ const Game: React.FC = () => {
     currentLevelIndex,
     gameWon,
     loadedLevels,
+    collectedObjectives,
     startGame,
     nextLevel,
     setLoadedLevels,
+    collectObjective,
+    resetCollectedObjectives,
   } = gameState;
 
   // Setup joystick
@@ -50,9 +53,12 @@ const Game: React.FC = () => {
     joystickMovement: joystickMovementRef.current,
     onLevelComplete: () => {
       if (loadedLevels) {
+        resetCollectedObjectives();
         nextLevel(loadedLevels);
       }
     },
+    onObjectiveCollected: collectObjective,
+    collectedObjectives,
     enabled: gameStarted,
   });
 
