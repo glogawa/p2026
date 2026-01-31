@@ -1,31 +1,54 @@
-import { IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonIcon, IonLabel } from '@ionic/react';
-import { homeOutline, buildOutline, gameControllerOutline } from 'ionicons/icons';
+import { useMenu } from '../context/MenuContext';
+import { useLocation } from 'react-router-dom';
+import './Menu.css';
 
 const Menu: React.FC = () => {
+  const { isOpen, closeMenu } = useMenu();
+  const location = useLocation();
+
+  const menuItems = [
+    { path: '/home', label: 'Home' },
+    { path: '/builder', label: 'Builder' },
+    { path: '/game', label: 'Game' },
+  ];
+
+  const handleItemClick = (path: string) => {
+    if (location.pathname !== path) {
+      closeMenu();
+    }
+  };
+
   return (
-    <IonMenu contentId="main-content" style={{ width: '200px' }}>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Menu</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonList>
-          <IonItem routerLink="/home" routerDirection="root">
-            <IonIcon icon={homeOutline} slot="start" />
-            <IonLabel>Home</IonLabel>
-          </IonItem>
-          <IonItem routerLink="/builder" routerDirection="root">
-            <IonIcon icon={buildOutline} slot="start" />
-            <IonLabel>Builder</IonLabel>
-          </IonItem>
-          <IonItem routerLink="/game" routerDirection="root">
-            <IonIcon icon={gameControllerOutline} slot="start" />
-            <IonLabel>Game</IonLabel>
-          </IonItem>
-        </IonList>
-      </IonContent>
-    </IonMenu>
+    <>
+      {/* Backdrop */}
+      {isOpen && (
+        <div className="menu-backdrop" onClick={closeMenu} />
+      )}
+
+      {/* Menu */}
+      <div className={`side-menu ${isOpen ? 'open' : ''}`}>
+        <div className="menu-header">
+          <h2>Menu</h2>
+        </div>
+
+        <nav className="menu-nav">
+          {menuItems.map((item) => (
+            <a
+              key={item.path}
+              href={item.path}
+              className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleItemClick(item.path);
+                window.location.href = item.path;
+              }}
+            >
+              <span className="menu-label">{item.label}</span>
+            </a>
+          ))}
+        </nav>
+      </div>
+    </>
   );
 };
 

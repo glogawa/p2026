@@ -1,12 +1,15 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonItem, IonLabel } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonItem, IonLabel, IonIcon } from '@ionic/react';
 import { useState, useEffect, useRef } from 'react';
-import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, KeyboardEventTypes } from '@babylonjs/core';
-import { GUI } from '@babylonjs/gui';
+import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, KeyboardEventTypes, VirtualJoystick } from '@babylonjs/core';
+import { AdvancedDynamicTexture } from '@babylonjs/gui/2D';
 import { createGround } from '../assets/ground';
 import { createCamera } from '../assets/camera';
 import { createLight } from '../assets/light';
 import './Game.css';
 import ToggleLightDark from '../../components/utils/toggleLightDark';
+import { menuOutline } from 'ionicons/icons';
+import { menuController } from '@ionic/core';
+import PageHeader from '../../components/PageHeader';
 
 interface Level {
     id: number;
@@ -46,9 +49,8 @@ const Game: React.FC = () => {
       canvasRef.current.focus();
 
       // Create UI for virtual joystick
-      const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-      const joystick = new GUI.VirtualJoystick();
-      advancedTexture.addControl(joystick);
+      const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
+      const joystick = new VirtualJoystick();
 
       // Find start position
       const startEntry = Object.entries(currentLevel.positions).find(([_, type]) => type === 'start');
@@ -106,33 +108,19 @@ const Game: React.FC = () => {
   if (gameStarted) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Game</IonTitle>
-            <IonButtons slot="start">
-              <IonMenuToggle />
-            </IonButtons>
-            <IonButtons slot="end">
-              <ToggleLightDark />
-              <IonButton onClick={() => setGameStarted(false)}>Leave Game</IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <canvas ref={canvasRef} style={{ width: '100%', height: 'calc(100vh - 56px)' }} />
+        <PageHeader title="Game">
+          <IonButton onClick={() => setGameStarted(false)}>Leave Game</IonButton>
+        </PageHeader>
+        <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0 }}>
+          <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+        </IonContent>
       </IonPage>
     );
   }
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Game</IonTitle>
-          <IonButtons slot="end">
-            <ToggleLightDark />
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
+      <PageHeader title="Game" />
       <IonContent fullscreen>
         <IonHeader collapse="condense">
           <IonToolbar>
