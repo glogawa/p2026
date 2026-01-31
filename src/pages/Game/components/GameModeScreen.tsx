@@ -17,7 +17,7 @@ export function GameModeScreen({
       <IonCard className="glass-card" style={{ marginBottom: '15px', cursor: 'pointer' }} onClick={onStoryMode}>
         <IonCardContent>
           <h2 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>📖 Story Mode</h2>
-          <p style={{ margin: '0', fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)' }}>
+          <p style={{ margin: '0', fontSize: '13px' }}>
             Follow the narrative with carefully crafted levels
           </p>
         </IonCardContent>
@@ -26,7 +26,7 @@ export function GameModeScreen({
       <IonCard className="glass-card" style={{ marginBottom: '15px', cursor: 'pointer' }} onClick={onCustomMode}>
         <IonCardContent>
           <h2 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>⚙️ Custom Game</h2>
-          <p style={{ margin: '0', fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)' }}>
+          <p style={{ margin: '0', fontSize: '13px' }}>
             Load your own custom level configuration
           </p>
         </IonCardContent>
@@ -35,7 +35,7 @@ export function GameModeScreen({
       <IonCard className="glass-card" style={{ cursor: 'pointer' }} onClick={onSandboxMode}>
         <IonCardContent>
           <h2 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>🎮 Sandbox Mode</h2>
-          <p style={{ margin: '0', fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)' }}>
+          <p style={{ margin: '0', fontSize: '13px' }}>
             Generate random levels for endless fun
           </p>
         </IonCardContent>
