@@ -9,6 +9,7 @@ export function createExit(scene: Scene, position: Vector3): any {
     material.diffuseColor = new Color3(1, 0, 0); // Red
     material.specularColor = new Color3(0.2, 0.2, 0.2);
     exit.material = material;
+    (exit as any).exitMaterial = material; // Store for later disposal
     
     return exit;
 }

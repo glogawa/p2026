@@ -40,6 +40,12 @@ export function useGameEngine({
   const playerStaggerTimeRef = useRef(0);
   const lastFrameTimeRef = useRef<number>(performance.now());
   const guiTextureRef = useRef<AdvancedDynamicTexture | null>(null);
+  const groundPlaneRef = useRef<any>(null);
+  const groundMaterialRef = useRef<any>(null);
+  const startMeshesRef = useRef<any[]>([]);
+  const exitMeshesRef = useRef<any[]>([]);
+  const playerBoxRef = useRef<any>(null);
+  const joystickMovementRef = useRef(joystickMovement);
 
   // Update the refs when callbacks change
   useEffect(() => {
@@ -50,6 +56,10 @@ export function useGameEngine({
     onObjectiveCollectedRef.current = onObjectiveCollected;
     onLevelCompleteRef.current = onLevelComplete;
   }, [onObjectiveCollected, onLevelComplete]);
+
+  useEffect(() => {
+    joystickMovementRef.current = joystickMovement;
+  }, [joystickMovement]);
 
   // Handle NPC GUI visibility toggle
   useEffect(() => {
@@ -69,12 +79,18 @@ export function useGameEngine({
     if (!enabled || !canvasRef.current || !currentLevel) return;
 
     const engine = new Engine(canvasRef.current, true);
+    engine.enableOfflineSupport = false;
+    
     const scene = new Scene(engine);
     createCamera(scene, canvasRef.current);
     createLight(scene);
     const gridSize = currentLevel.gridSize;
-    const objectiveTiles = createGround(scene, gridSize, currentLevel.positions, collectedRef.current);
+    const { objectiveTiles, groundPlane, groundMaterial, startMeshes, exitMeshes } = createGround(scene, gridSize, currentLevel.positions, collectedRef.current);
     objectiveTilesRef.current = objectiveTiles;
+    groundPlaneRef.current = groundPlane;
+    groundMaterialRef.current = groundMaterial;
+    startMeshesRef.current = startMeshes;
+    exitMeshesRef.current = exitMeshes;
 
     // Focus canvas
     canvasRef.current.tabIndex = 0;
@@ -92,6 +108,12 @@ export function useGameEngine({
       const worldZ = y - gridSize / 2 + 0.5;
       box = MeshBuilder.CreateBox('player', { size: 1 }, scene);
       box.position = new Vector3(worldX, 0.5, worldZ);
+      const playerMaterial = new StandardMaterial('playerMaterial', scene);
+      playerMaterial.diffuseColor = new Color3(0.2, 0.5, 1); // Blue
+      playerMaterial.specularColor = new Color3(0.2, 0.2, 0.2);
+      box.material = playerMaterial;
+      box.playerMaterial = playerMaterial;
+      playerBoxRef.current = box;
     }
 
     // Find objectives
@@ -125,8 +147,8 @@ export function useGameEngine({
         const [x, y] = pos.split(',').map(Number);
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
-        createFence(scene, new Vector3(worldX, 0.5, worldZ), fenceConfig);
-        fenceMeshesRef.current[pos] = true;
+        const fenceMesh = createFence(scene, new Vector3(worldX, 0.5, worldZ), fenceConfig);
+        fenceMeshesRef.current[pos] = fenceMesh;
         fences.push(new Vector3(worldX, 0.5, worldZ));
       }
     });
@@ -197,8 +219,8 @@ export function useGameEngine({
           if (inputMap['a']) box.position.x -= 0.1;
           if (inputMap['d']) box.position.x += 0.1;
           // Joystick movement
-          box.position.x += joystickMovement.x;
-          box.position.z += joystickMovement.z;
+          box.position.x += joystickMovementRef.current.x;
+          box.position.z += joystickMovementRef.current.z;
         }
 
         // Check fence collisions
@@ -373,7 +395,96 @@ export function useGameEngine({
     });
 
     return () => {
+      // Stop the render loop
+      engine.stopRenderLoop();
+
+      // Dispose GUI texture
+      if (guiTextureRef.current) {
+        guiTextureRef.current.dispose();
+        guiTextureRef.current = null;
+      }
+
+      // Dispose NPC GUI elements and materials
+      npcsRef.current.forEach((npc) => {
+        if (npc.guiRect) {
+          npc.guiRect.dispose();
+        }
+        if (npc.guiLine) {
+          npc.guiLine.dispose();
+        }
+        if (npc.guiTarget) {
+          npc.guiTarget.dispose();
+        }
+        if (npc.mesh && npc.mesh.npcMaterial) {
+          npc.mesh.npcMaterial.dispose();
+        }
+        // Mesh is disposed with scene
+      });
+
+      // Dispose fence meshes and materials
+      Object.values(fenceMeshesRef.current).forEach((fenceMesh) => {
+        if (fenceMesh && typeof fenceMesh !== 'boolean') {
+          if (fenceMesh.fenceMaterial) {
+            fenceMesh.fenceMaterial.dispose();
+          }
+          fenceMesh.dispose();
+        }
+      });
+
+      // Dispose objective tile materials
+      Object.values(objectiveTilesRef.current).forEach((tileData) => {
+        if (tileData.tile && tileData.tile.objectiveMaterial) {
+          tileData.tile.objectiveMaterial.dispose();
+        }
+        if (tileData.material) {
+          tileData.material.dispose();
+        }
+        // Tile mesh is disposed with scene
+      });
+
+      // Dispose ground plane and material
+      if (groundPlaneRef.current) {
+        groundPlaneRef.current.dispose();
+      }
+      if (groundMaterialRef.current) {
+        groundMaterialRef.current.dispose();
+      }
+
+      // Dispose start and exit meshes and materials
+      startMeshesRef.current.forEach((mesh) => {
+        if (mesh.startMaterial) {
+          mesh.startMaterial.dispose();
+        }
+        mesh.dispose();
+      });
+      exitMeshesRef.current.forEach((mesh) => {
+        if (mesh.exitMaterial) {
+          mesh.exitMaterial.dispose();
+        }
+        mesh.dispose();
+      });
+
+      // Dispose player box and material
+      if (playerBoxRef.current) {
+        if (playerBoxRef.current.playerMaterial) {
+          playerBoxRef.current.playerMaterial.dispose();
+        }
+        playerBoxRef.current.dispose();
+      }
+
+      // Clear refs
+      npcsRef.current = [];
+      fenceMeshesRef.current = {};
+      objectiveTilesRef.current = {};
+      groundPlaneRef.current = null;
+      groundMaterialRef.current = null;
+      startMeshesRef.current = [];
+      exitMeshesRef.current = [];
+      playerBoxRef.current = null;
+
+      // Dispose scene and engine
+      scene.dispose();
       engine.dispose();
     };
-  }, [enabled, canvasRef, currentLevel, joystickMovement, showNPCGui]);
+  }, [enabled, canvasRef, currentLevel, showNPCGui]);
 }

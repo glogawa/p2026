@@ -25,6 +25,7 @@ export type NPCState = 'thinking' | 'socializing' | 'wandering' | 'staggered' | 
 
 export interface NPCInstance {
   mesh: any;
+  material?: StandardMaterial;
   position: Vector3;
   state: NPCState;
   stateStartTime: number;
@@ -47,6 +48,7 @@ export function createNPC(scene: Scene, position: Vector3): any {
   material.diffuseColor = new Color3(1, 0.647, 0); // Orange
   material.specularColor = new Color3(0.2, 0.2, 0.2);
   npc.material = material;
+  (npc as any).npcMaterial = material; // Store for later disposal
 
   return npc;
 }

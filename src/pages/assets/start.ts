@@ -9,6 +9,7 @@ export function createStart(scene: Scene, position: Vector3): any {
     material.diffuseColor = new Color3(0, 1, 0); // Green
     material.specularColor = new Color3(0.2, 0.2, 0.2);
     start.material = material;
+    (start as any).startMaterial = material; // Store for later disposal
     
     return start;
 }
