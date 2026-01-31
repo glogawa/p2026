@@ -13,7 +13,7 @@ import './Game.css';
 interface Level {
   id: number;
   gridSize: number;
-  positions: { [key: string]: 'start' | 'end' | 'objective' | null };
+  positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
 }
 
 const Game: React.FC = () => {
