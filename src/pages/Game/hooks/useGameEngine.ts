@@ -6,6 +6,7 @@ import { createCamera } from '../../assets/camera';
 import { createLight } from '../../assets/light';
 import { createFence, defaultFenceConfig, FenceConfig } from '../../assets/fence';
 import { createNPC, defaultNPCConfig, NPCInstance, NPCState, changeNPCState, findNearestNPC, getRandomPositionInGrid, getNextNPCState, getRandomAdjacentPosition, attachNPCGUI, updateNPCGUILabel, generateNPCStats, NPCStatsConfig } from '../../assets/npc';
+import { createPlayer } from '../../assets/player';
 
 interface UseGameEngineOptions {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -103,8 +104,8 @@ export function useGameEngine({
       canvasRef.current!.tabIndex = 0;
       canvasRef.current!.focus();
 
-      // Create player box
-      let box: any = null;
+      // Create player
+      let playerRig: any = null;
       const startEntry = Object.entries(currentLevel.positions).find(
         ([_, type]) => type === 'start'
       );
@@ -113,17 +114,11 @@ export function useGameEngine({
         const [x, y] = pos.split(',').map(Number);
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
-        box = MeshBuilder.CreateBox('player', { size: 1 }, scene);
-        box.position = new Vector3(worldX, 0.5, worldZ);
-        const playerMaterial = new StandardMaterial('playerMaterial', scene);
-        playerMaterial.diffuseColor = new Color3(0.2, 0.5, 1); // Blue
-        playerMaterial.specularColor = new Color3(0.2, 0.2, 0.2);
-        box.material = playerMaterial;
-        box.playerMaterial = playerMaterial;
-        playerBoxRef.current = box;
+        playerRig = createPlayer(scene, new Vector3(worldX, 0, worldZ), 0.5, 0);
+        playerBoxRef.current = playerRig;
         // Set camera to follow the player
         if (cameraRef.current) {
-          cameraRef.current.lockedTarget = box;
+          cameraRef.current.lockedTarget = playerRig;
         }
       }
 
@@ -134,7 +129,7 @@ export function useGameEngine({
           const [x, y] = pos.split(',').map(Number);
           const worldX = x - gridSize / 2 + 0.5;
           const worldZ = y - gridSize / 2 + 0.5;
-          objectives[pos] = new Vector3(worldX, 0.5, worldZ);
+          objectives[pos] = new Vector3(worldX, 0, worldZ);
         }
       });
 
@@ -148,7 +143,7 @@ export function useGameEngine({
         const [x, y] = pos.split(',').map(Number);
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
-        endPos = new Vector3(worldX, 0.5, worldZ);
+        endPos = new Vector3(worldX, 0, worldZ);
       }
 
       // Create fences
@@ -158,9 +153,9 @@ export function useGameEngine({
           const [x, y] = pos.split(',').map(Number);
           const worldX = x - gridSize / 2 + 0.5;
           const worldZ = y - gridSize / 2 + 0.5;
-          const fenceMesh = createFence(scene, new Vector3(worldX, 0.5, worldZ), fenceConfig);
+          const fenceMesh = createFence(scene, new Vector3(worldX, 0, worldZ), fenceConfig);
           fenceMeshesRef.current[pos] = fenceMesh;
-          fences.push(new Vector3(worldX, 0.5, worldZ));
+          fences.push(new Vector3(worldX, 0, worldZ));
         }
       });
 
@@ -175,7 +170,7 @@ export function useGameEngine({
           const [x, y] = pos.split(',').map(Number);
           const worldX = x - gridSize / 2 + 0.5;
           const worldZ = y - gridSize / 2 + 0.5;
-          const npcMesh = createNPC(scene, new Vector3(worldX, 0.5, worldZ));
+          const npcMesh = createNPC(scene, new Vector3(worldX, 0, worldZ));
           
           let npcStats_data = { stamina: 3, agility: 5 };
           if (npcStats) {
@@ -184,7 +179,7 @@ export function useGameEngine({
           
           const npcInstance: NPCInstance = {
             mesh: npcMesh,
-            position: new Vector3(worldX, 0.5, worldZ),
+            position: new Vector3(worldX, 0, worldZ),
             state: 'thinking',
             stateStartTime: 0, // Set to 0 so it immediately starts changing state
             stamina: npcStats_data.stamina,
@@ -218,7 +213,7 @@ export function useGameEngine({
 
       // Render loop
       engine.runRenderLoop(() => {
-        if (box) {
+        if (playerRig) {
           const currentTime = performance.now();
           const deltaTime = Math.min(currentTime - lastFrameTimeRef.current, 50); // Cap at 50ms to prevent large jumps
           lastFrameTimeRef.current = currentTime;
@@ -235,33 +230,33 @@ export function useGameEngine({
             const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
             // Keyboard movement
             if (inputMap['w']) {
-              box.position.x -= Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
-              box.position.z -= Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+              playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.1 * speedMultiplier;
+              playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.1 * speedMultiplier;
             }
             if (inputMap['s']) {
-              box.position.x += Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
-              box.position.z += Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+              playerRig.position.x += Math.sin(playerRig.rotation.y) * 0.1 * speedMultiplier;
+              playerRig.position.z += Math.cos(playerRig.rotation.y) * 0.1 * speedMultiplier;
             }
-            if (inputMap['a']) box.rotation.y -= 0.025;
-            if (inputMap['d']) box.rotation.y += 0.025;
+            if (inputMap['a']) playerRig.rotation.y -= 0.025;
+            if (inputMap['d']) playerRig.rotation.y += 0.025;
             // Joystick movement
-            box.position.x += joystickMovementRef.current.x * speedMultiplier;
-            box.position.z += joystickMovementRef.current.z * speedMultiplier;
+            playerRig.position.x += joystickMovementRef.current.x * speedMultiplier;
+            playerRig.position.z += joystickMovementRef.current.z * speedMultiplier;
           }
 
         // Check fence collisions
         fences.forEach((fencePos) => {
-          const distance = Vector3.Distance(box.position, fencePos);
+          const distance = Vector3.Distance(playerRig.position, fencePos);
           if (distance < 1.0 && !isStaggered) {
             // Collision detected - apply stagger
             staggerStateRef.current.isStaggered = true;
             staggerStateRef.current.staggerEndTime = currentTime + fenceConfig.staggerDuration;
             // Push player back from fence
-            const dirX = box.position.x - fencePos.x;
-            const dirZ = box.position.z - fencePos.z;
+            const dirX = playerRig.position.x - fencePos.x;
+            const dirZ = playerRig.position.z - fencePos.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-            box.position.x += (dirX / length) * fenceConfig.bounceDistance;
-            box.position.z += (dirZ / length) * fenceConfig.bounceDistance;
+            playerRig.position.x += (dirX / length) * fenceConfig.bounceDistance;
+            playerRig.position.z += (dirZ / length) * fenceConfig.bounceDistance;
           }
         });
 
@@ -269,12 +264,12 @@ export function useGameEngine({
         const halfGrid = gridSize / 2;
         const minBound = -halfGrid + 0.5;
         const maxBound = halfGrid - 0.5;
-        box.position.x = Math.max(minBound, Math.min(maxBound, box.position.x));
-        box.position.z = Math.max(minBound, Math.min(maxBound, box.position.z));
+        playerRig.position.x = Math.max(minBound, Math.min(maxBound, playerRig.position.x));
+        playerRig.position.z = Math.max(minBound, Math.min(maxBound, playerRig.position.z));
 
         // Check if reached objective
         Object.entries(objectives).forEach(([objectivePos, objectiveVector]) => {
-          if (!collectedRef.current.has(objectivePos) && Vector3.Distance(box.position, objectiveVector) < 0.5) {
+          if (!collectedRef.current.has(objectivePos) && Vector3.Distance(playerRig.position, objectiveVector) < 0.5) {
             collectedRef.current.add(objectivePos);
             onObjectiveCollectedRef.current(objectivePos);
             // Hide the objective tile
@@ -286,7 +281,7 @@ export function useGameEngine({
 
         // Check if reached end (only if all objectives are collected)
         if (endPos && collectedRef.current.size === Object.keys(objectives).length) {
-          if (Vector3.Distance(box.position, endPos) < 0.5) {
+          if (Vector3.Distance(playerRig.position, endPos) < 0.5) {
             onLevelCompleteRef.current();
           }
         }
@@ -294,17 +289,17 @@ export function useGameEngine({
         // Update NPC AI
         npcsRef.current.forEach((npc) => {
           const timeSinceStateChange = currentTime - npc.stateStartTime;
-          const distanceToPlayer = Vector3.Distance(box.position, npc.position);
+          const distanceToPlayer = Vector3.Distance(playerRig.position, npc.position);
 
           // Check player collision with NPC
           if (distanceToPlayer < 1.0) {
             if (npc.state !== 'staggered' && npc.state !== 'panic') {
               // NPC gets staggered
-              changeNPCState(npc, 'staggered', currentTime, undefined, box.position);
+              changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
               npc.panicStartTime = currentTime;
               // Push NPC back
-              const dirX = npc.position.x - box.position.x;
-              const dirZ = npc.position.z - box.position.z;
+              const dirX = npc.position.x - playerRig.position.x;
+              const dirZ = npc.position.z - playerRig.position.z;
               const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
               npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance;
               npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance;
@@ -320,7 +315,7 @@ export function useGameEngine({
           // Check if NPC should transition to a new state
           const nextState = getNextNPCState(npc, npcsRef.current, currentTime);
           if (nextState) {
-            changeNPCState(npc, nextState, currentTime, gridSize, box.position);
+            changeNPCState(npc, nextState, currentTime, gridSize, playerRig.position);
           }
 
           // NPC state machine - movement and behavior
@@ -398,7 +393,7 @@ export function useGameEngine({
             case 'panic':
               // Move to adjacent tiles randomly at high speed
               if (!npc.targetPosition || Vector3.Distance(npc.position, npc.targetPosition) < 0.3) {
-                npc.targetPosition = getRandomAdjacentPosition(npc, gridSize, currentLevel.positions, box.position);
+                npc.targetPosition = getRandomAdjacentPosition(npc, gridSize, currentLevel.positions, playerRig.position);
               }
               if (npc.targetPosition) {
                 const dirX = npc.targetPosition.x - npc.position.x;
@@ -494,11 +489,8 @@ export function useGameEngine({
           mesh.dispose();
         });
 
-        // Dispose player box and material
+        // Dispose player
         if (playerBoxRef.current) {
-          if (playerBoxRef.current.playerMaterial) {
-            playerBoxRef.current.playerMaterial.dispose();
-          }
           playerBoxRef.current.dispose();
         }
 
