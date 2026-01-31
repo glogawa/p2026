@@ -122,15 +122,10 @@ export function useGameEngine({
         }
       }
 
-      // Find objectives
+      // Find objectives - use actual tile positions
       const objectives: { [key: string]: Vector3 } = {};
-      Object.entries(currentLevel.positions).forEach(([pos, type]) => {
-        if (type === 'objective') {
-          const [x, y] = pos.split(',').map(Number);
-          const worldX = x - gridSize / 2 + 0.5;
-          const worldZ = y - gridSize / 2 + 0.5;
-          objectives[pos] = new Vector3(worldX, 0, worldZ);
-        }
+      Object.keys(objectiveTiles).forEach(pos => {
+        objectives[pos] = objectiveTiles[pos].tile.position.clone();
       });
 
       // Find end position
@@ -276,9 +271,17 @@ export function useGameEngine({
           if (!collectedRef.current.has(objectivePos) && Vector3.Distance(playerRig.position, objectiveVector) < 0.5) {
             collectedRef.current.add(objectivePos);
             onObjectiveCollectedRef.current(objectivePos);
-            // Hide the objective tile
+            // Dispose and remove the objective tile
             if (objectiveTilesRef.current[objectivePos]) {
-              objectiveTilesRef.current[objectivePos].tile.isVisible = false;
+              const tileData = objectiveTilesRef.current[objectivePos];
+              if (tileData.tile && tileData.tile.objectiveMaterial) {
+                tileData.tile.objectiveMaterial.dispose();
+              }
+              if (tileData.tile && tileData.tile.blueMaterial) {
+                tileData.tile.blueMaterial.dispose();
+              }
+              tileData.tile.dispose();
+              delete objectiveTilesRef.current[objectivePos];
             }
           }
         });

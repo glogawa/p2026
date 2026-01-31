@@ -42,7 +42,7 @@ export async function createGround(
                     exitMeshes.push(exitMesh);
                     break;
                 case 'objective':
-                    const objective = createObjective(scene, position);
+                    const objective = createObjective(scene, position, 0.4, -0.3);
                     if (isCollected) {
                         objective.isVisible = false;
                     }
