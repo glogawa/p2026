@@ -1,7 +1,5 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent } from '@ionic/react';
-
 import ToggleLightDark from '../components/utils/toggleLightDark';
-import ExploreContainer from '../components/ExploreContainer';
 
 const Home: React.FC = () => {
   return (
