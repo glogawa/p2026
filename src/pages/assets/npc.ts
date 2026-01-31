@@ -125,8 +125,8 @@ export function getRandomPositionInGrid(gridSize: number, minDistance: number = 
   return new Vector3(x, 0.5, z);
 }
 
-export function getRandomAdjacentPosition(npc: NPCInstance, gridSize: number): Vector3 {
-  // Get an adjacent tile position (one of 8 neighbors or 4 cardinal directions)
+export function getRandomAdjacentPosition(npc: NPCInstance, gridSize: number, positions?: { [key: string]: string | null }, playerPos?: Vector3): Vector3 {
+  // Get an adjacent tile position, avoiding fences and player if provided
   const directions = [
     { x: 1, z: 0 },   // right
     { x: -1, z: 0 },  // left
@@ -138,15 +138,42 @@ export function getRandomAdjacentPosition(npc: NPCInstance, gridSize: number): V
     { x: -1, z: -1 }, // diagonal
   ];
   
-  const randomDir = directions[Math.floor(Math.random() * directions.length)];
-  const newX = npc.position.x + randomDir.x * 1.2; // 1.2 units is roughly one grid cell
-  const newZ = npc.position.z + randomDir.z * 1.2;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const randomDir = directions[Math.floor(Math.random() * directions.length)];
+    const newX = npc.position.x + randomDir.x * 1.2;
+    const newZ = npc.position.z + randomDir.z * 1.2;
+    
+    // Clamp to grid boundaries
+    const halfGrid = gridSize / 2;
+    const minBound = -halfGrid + 0.5;
+    const maxBound = halfGrid - 0.5;
+    const clampedX = Math.max(minBound, Math.min(maxBound, newX));
+    const clampedZ = Math.max(minBound, Math.min(maxBound, newZ));
+    
+    // Convert to grid coordinates
+    const gridX = Math.round(clampedX + gridSize / 2 - 0.5);
+    const gridY = Math.round(clampedZ + gridSize / 2 - 0.5);
+    const posKey = `${gridX},${gridY}`;
+    
+    // Check if position has a fence (if positions provided)
+    if (positions && positions[posKey] === 'fence') continue;
+    
+    // Check if too close to player (if playerPos provided)
+    if (playerPos) {
+      const distToPlayer = Math.sqrt((clampedX - playerPos.x) ** 2 + (clampedZ - playerPos.z) ** 2);
+      if (distToPlayer < 1.0) continue;
+    }
+    
+    return new Vector3(clampedX, 0.5, clampedZ);
+  }
   
-  // Clamp to grid boundaries
+  // Fallback: return a random adjacent without checks
+  const randomDir = directions[Math.floor(Math.random() * directions.length)];
+  const newX = npc.position.x + randomDir.x * 1.2;
+  const newZ = npc.position.z + randomDir.z * 1.2;
   const halfGrid = gridSize / 2;
   const minBound = -halfGrid + 0.5;
   const maxBound = halfGrid - 0.5;
-  
   return new Vector3(
     Math.max(minBound, Math.min(maxBound, newX)),
     0.5,

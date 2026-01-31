@@ -39,10 +39,32 @@ export function generateRandomLevel(id: number = 1): Level {
 
   // Generate random number of fences (0 to 5)
   const fenceCount = Math.floor(Math.random() * 6);
+  const fencePositions: string[] = [];
   for (let i = 0; i < fenceCount; i++) {
-    const fencePos = getRandomPosition(gridSize, usedPositions);
+    let fencePos: string;
+    if (i === 0 || Math.random() < 0.5) {
+      // Place randomly
+      fencePos = getRandomPosition(gridSize, usedPositions);
+    } else {
+      // Try to place adjacent to an existing fence
+      const randomFence = fencePositions[Math.floor(Math.random() * fencePositions.length)];
+      const [x, y] = randomFence.split(',').map(Number);
+      const adjCandidates: string[] = [
+        x > 0 ? `${x-1},${y}` : null,
+        x < gridSize - 1 ? `${x+1},${y}` : null,
+        y > 0 ? `${x},${y-1}` : null,
+        y < gridSize - 1 ? `${x},${y+1}` : null,
+      ].filter((pos): pos is string => pos !== null && !usedPositions.has(pos));
+      if (adjCandidates.length > 0) {
+        fencePos = adjCandidates[Math.floor(Math.random() * adjCandidates.length)];
+      } else {
+        // Fallback to random
+        fencePos = getRandomPosition(gridSize, usedPositions);
+      }
+    }
     positions[fencePos] = 'fence';
     usedPositions.add(fencePos);
+    fencePositions.push(fencePos);
   }
 
   // Generate random number of NPCs (0 to 5)
