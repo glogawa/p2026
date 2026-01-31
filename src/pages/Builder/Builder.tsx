@@ -75,18 +75,29 @@ const Builder: React.FC = () => {
                       min="1"
                     />
                   </IonItem>
-                  {levels.map((level) => (
-                    <IonItem key={level.id}>
-                      <IonLabel position="stacked">Level {level.id} Grid Size</IonLabel>
-                      <IonInput
-                        type="number"
-                        value={level.gridSize}
-                        onIonChange={(e) => handleGridSizeChange(level.id, e.detail.value!)}
-                        min="5"
-                        max="100"
-                      />
-                    </IonItem>
-                  ))}
+                  {levels.map((level) => {
+                    const displaySize = Math.min(level.gridSize, 20);
+                    return (
+                      <div key={level.id}>
+                        <IonItem>
+                          <IonLabel position="stacked">Level {level.id} Grid Size</IonLabel>
+                          <IonInput
+                            type="number"
+                            value={level.gridSize}
+                            onIonChange={(e) => handleGridSizeChange(level.id, e.detail.value!)}
+                            min="5"
+                            max="100"
+                          />
+                        </IonItem>
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: '300px', height: '300px', margin: '10px auto', backgroundColor: 'var(--glass-background)', padding: '5px' }}>
+                          {Array.from({ length: displaySize * displaySize }, (_, i) => (
+                            <div key={i} style={{ backgroundColor: '#666', border: '1px solid var(--glass-border)' }}></div>
+                          ))}
+                        </div>
+                        {level.gridSize > 20 && <p style={{ textAlign: 'center', fontSize: '12px', color: 'gray' }}>Preview limited to 20x20</p>}
+                      </div>
+                    );
+                  })}
                   <IonButton className="glass-button" onClick={saveDesign} expand="block" style={{ marginTop: '20px' }}>
                     Save Design
                   </IonButton>
