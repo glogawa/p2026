@@ -48,10 +48,15 @@ const Game: React.FC = () => {
   const [showNPCGui, setShowNPCGui] = useState<boolean>(true);
   const [showLoadModal, setShowLoadModal] = useState<boolean>(false);
   const [gameMode, setGameMode] = useState<'selection' | 'story' | 'custom' | 'sandbox'>('selection');
+  const [alertPhase, setAlertPhase] = useState<'high' | 'low'>('low');
+  const [alertTimer, setAlertTimer] = useState<number>(10);
+  const [maskActive, setMaskActive] = useState<boolean>(false);
+  const [maskDestroying, setMaskDestroying] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
   const fpsCounterRef = useRef({ frameCount: 0, lastTime: performance.now() });
+  const alertStateRef = useRef({ phase: 'low' as 'high' | 'low', timer: 10 });
 
   // Use modular hooks
   const gameState = useGameState();
@@ -109,6 +114,52 @@ const Game: React.FC = () => {
     return () => cancelAnimationFrame(animationId);
   }, [gameStarted]);
 
+  // Alert phase cycling system
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const alertInterval = setInterval(() => {
+      alertStateRef.current.timer -= 1;
+      
+      if (alertStateRef.current.timer <= 0) {
+        // Check high alert end condition
+        if (alertStateRef.current.phase === 'high') {
+          // High alert time is up
+          if (!maskActive) {
+            // No mask - game over
+            loseGame();
+            return;
+          } else {
+            // Has mask - destroy it and continue
+            setMaskDestroying(true);
+            // After animation completes (1s), deactivate mask and reset destroying state
+            setTimeout(() => {
+              setMaskActive(false);
+              setMaskDestroying(false);
+            }, 1000);
+          }
+        }
+        
+        // Switch phase
+        if (alertStateRef.current.phase === 'low') {
+          alertStateRef.current.phase = 'high';
+          // High alert: 2 to 4 seconds
+          alertStateRef.current.timer = Math.floor(Math.random() * 3) + 2;
+        } else {
+          alertStateRef.current.phase = 'low';
+          // Low alert: ~20 seconds
+          alertStateRef.current.timer = 20;
+        }
+      }
+      
+      // Update state with current values from ref
+      setAlertPhase(alertStateRef.current.phase);
+      setAlertTimer(alertStateRef.current.timer);
+    }, 1000); // Update every second
+
+    return () => clearInterval(alertInterval);
+  }, [gameStarted, maskActive, loseGame]);
+
   // Setup joystick
   useGameJoystick({
     isGameActive: gameStarted,
@@ -132,12 +183,19 @@ const Game: React.FC = () => {
     onObjectiveCollected: collectObjective,
     onObjectiveLost: loseObjective,
     onGameLost: loseGame,
+    onNPCCollision: (isThief) => {
+      // When player collides with non-thief NPC during low alert, activate mask
+      if (!isThief && alertPhase === 'low') {
+        setMaskActive(true);
+      }
+    },
     collectedObjectives,
     enabled: gameStarted,
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
     showNPCGui,
     npcStats,
     playerStats,
+    alertPhase,
   });
 
   const totalObjectives = currentLevel ? Object.values(currentLevel.positions).filter(pos => pos === 'objective').length : 0;
@@ -238,9 +296,86 @@ const Game: React.FC = () => {
               color: 'white',
               fontSize: '20px',
               fontWeight: 'bold',
-              zIndex: 1000
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '20px'
             }}>
-              {collectedObjectives.size} / {totalObjectives}
+              {/* Mask */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                border: maskActive ? '2px solid #9C27B0' : '2px solid rgba(156, 39, 176, 0.3)',
+                boxShadow: maskActive
+                  ? '0 0 15px rgba(156, 39, 176, 0.8), inset 0 0 10px rgba(156, 39, 176, 0.3)'
+                  : '0 0 5px rgba(156, 39, 176, 0.2)',
+                opacity: maskActive ? 1 : 0.5,
+                transition: 'all 0.3s ease'
+              }}>
+                <img 
+                  src="/assets/mask.png" 
+                  alt="Mask"
+                  style={{
+                    width: '90%',
+                    height: '90%',
+                    objectFit: 'contain',
+                    filter: maskActive 
+                      ? 'drop-shadow(0 0 8px #9C27B0) brightness(1.2)' 
+                      : 'brightness(0.6)',
+                    animation: maskDestroying
+                      ? 'maskDestroy 1s ease-in-out forwards'
+                      : (maskActive ? 'maskGlow 1.5s ease-in-out infinite' : 'none')
+                  }}
+                />
+              </div>
+
+              {/* Objective Counter */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{
+                  width: '12px',
+                  height: '12px',
+                  backgroundColor: '#2196F3',
+                  borderRadius: '50%',
+                  display: 'inline-block',
+                  boxShadow: '0 0 8px #2196F3, 0 0 16px rgba(33, 150, 243, 0.6), inset -2px -2px 4px rgba(0, 0, 0, 0.3), inset 2px 2px 4px rgba(255, 255, 255, 0.4)',
+                  animation: 'glow 2s ease-in-out infinite'
+                }}></span>
+                {collectedObjectives.size} / {totalObjectives}
+              </div>
+
+              {/* Alert Phase */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                background: alertPhase === 'high' 
+                  ? 'rgba(255, 67, 54, 0.2)' 
+                  : 'rgba(76, 175, 80, 0.2)',
+                borderRadius: '8px',
+                border: `1px solid ${alertPhase === 'high' ? '#FF4336' : '#4CAF50'}`,
+                fontSize: '14px',
+                color: alertPhase === 'high' ? '#FF4336' : '#4CAF50'
+              }}>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  backgroundColor: alertPhase === 'high' ? '#FF4336' : '#4CAF50',
+                  borderRadius: '50%',
+                  display: 'inline-block',
+                  animation: alertPhase === 'high' ? 'pulse 0.5s ease-in-out infinite' : 'none'
+                }}></span>
+                {alertPhase === 'high' ? 'HIGH' : 'LOW'} {alertTimer}s
+              </div>
             </div>
             <button 
               onClick={() => setShowNPCGui(!showNPCGui)}
