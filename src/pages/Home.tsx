@@ -4,8 +4,8 @@ import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3 } from '@baby
 import { createGround } from './assets/ground';
 import { createCamera } from './assets/camera';
 import { createLight } from './assets/light';
-import ExploreContainer from '../components/ExploreContainer';
 import './Home.css';
+import ToggleLightDark from '../components/utils/toggleLightDark';
 
 const Home: React.FC = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -40,6 +40,7 @@ const Home: React.FC = () => {
           <IonToolbar>
             <IonTitle>Game</IonTitle>
             <IonButtons slot="end">
+              <ToggleLightDark />
               <IonButton onClick={() => setGameStarted(false)}>Leave Game</IonButton>
             </IonButtons>
           </IonToolbar>
@@ -54,6 +55,9 @@ const Home: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonTitle>Game</IonTitle>
+          <IonButtons slot="end">
+            <ToggleLightDark />
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
