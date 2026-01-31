@@ -4,6 +4,7 @@ import { createGround } from '../../assets/ground';
 import { createCamera } from '../../assets/camera';
 import { createLight } from '../../assets/light';
 import { createFence, defaultFenceConfig, FenceConfig } from '../../assets/fence';
+import { createNPC, defaultNPCConfig, NPCInstance, NPCState, changeNPCState, findNearestNPC, getRandomPositionInGrid, getNextNPCState, getRandomAdjacentPosition } from '../../assets/npc';
 
 interface UseGameEngineOptions {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -32,6 +33,8 @@ export function useGameEngine({
   const onLevelCompleteRef = useRef(onLevelComplete);
   const staggerStateRef = useRef({ isStaggered: false, staggerEndTime: 0 });
   const fenceMeshesRef = useRef<{ [key: string]: any }>({});
+  const npcsRef = useRef<NPCInstance[]>([]);
+  const playerStaggerTimeRef = useRef(0);
 
   // Update the refs when callbacks change
   useEffect(() => {
@@ -109,6 +112,24 @@ export function useGameEngine({
       }
     });
 
+    // Create NPCs
+    const now = performance.now();
+    Object.entries(currentLevel.positions).forEach(([pos, type]) => {
+      if (type === 'npc') {
+        const [x, y] = pos.split(',').map(Number);
+        const worldX = x - gridSize / 2 + 0.5;
+        const worldZ = y - gridSize / 2 + 0.5;
+        const npcMesh = createNPC(scene, new Vector3(worldX, 0.5, worldZ));
+        const npcInstance: NPCInstance = {
+          mesh: npcMesh,
+          position: new Vector3(worldX, 0.5, worldZ),
+          state: 'thinking',
+          stateStartTime: now,
+        };
+        npcsRef.current.push(npcInstance);
+      }
+    });
+
     // Keyboard input
     const inputMap: { [key: string]: boolean } = {};
     scene.onKeyboardObservable.add((kbInfo) => {
@@ -183,6 +204,132 @@ export function useGameEngine({
             onLevelCompleteRef.current();
           }
         }
+
+        // Update NPC AI
+        npcsRef.current.forEach((npc) => {
+          const timeSinceStateChange = currentTime - npc.stateStartTime;
+          const distanceToPlayer = Vector3.Distance(box.position, npc.position);
+
+          // Check player collision with NPC
+          if (distanceToPlayer < 1.0) {
+            if (npc.state !== 'staggered' && npc.state !== 'panic') {
+              // NPC gets staggered
+              changeNPCState(npc, 'staggered', currentTime);
+              npc.panicStartTime = currentTime;
+              // Push NPC back
+              const dirX = npc.position.x - box.position.x;
+              const dirZ = npc.position.z - box.position.z;
+              const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+              npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance;
+              npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance;
+            }
+            // Player enters stagger state
+            if (!isStaggered) {
+              playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
+              staggerStateRef.current.isStaggered = true;
+              staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
+            }
+          }
+
+          // Check if NPC should transition to a new state
+          const nextState = getNextNPCState(npc, npcsRef.current, currentTime);
+          if (nextState) {
+            changeNPCState(npc, nextState, currentTime, gridSize);
+          }
+
+          // NPC state machine - movement and behavior
+          switch (npc.state) {
+            case 'thinking':
+              // Stand still - no movement
+              break;
+
+            case 'socializing':
+              if (npc.targetNPC) {
+                const distToTarget = Vector3.Distance(npc.position, npc.targetNPC.position);
+                if (distToTarget > 1.5) {
+                  // Move towards NPC
+                  const dirX = npc.targetNPC.position.x - npc.position.x;
+                  const dirZ = npc.targetNPC.position.z - npc.position.z;
+                  const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                  const moveDistance = defaultNPCConfig.socializingSpeedPerMs * 16; // ~16ms per frame
+                  npc.position.x += (dirX / length) * moveDistance;
+                  npc.position.z += (dirZ / length) * moveDistance;
+                }
+              } else {
+                // Find nearest NPC to socialize with
+                const nearbyNPC = findNearestNPC(npc, npcsRef.current, 3);
+                if (nearbyNPC) {
+                  npc.targetNPC = nearbyNPC;
+                } else if (!npc.targetPosition) {
+                  // If no NPC nearby, move to adjacent tile
+                  npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+                }
+              }
+              // Move towards adjacent target if no NPC nearby
+              if (!npc.targetNPC && npc.targetPosition) {
+                const distToTarget = Vector3.Distance(npc.position, npc.targetPosition);
+                if (distToTarget > 0.2) {
+                  const dirX = npc.targetPosition.x - npc.position.x;
+                  const dirZ = npc.targetPosition.z - npc.position.z;
+                  const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                  const moveDistance = defaultNPCConfig.socializingSpeedPerMs * 16;
+                  npc.position.x += (dirX / length) * moveDistance;
+                  npc.position.z += (dirZ / length) * moveDistance;
+                } else {
+                  npc.targetPosition = undefined;
+                }
+              }
+              break;
+
+            case 'wandering':
+              if (!npc.targetPosition) {
+                npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+              }
+              if (npc.targetPosition) {
+                const distToTarget = Vector3.Distance(npc.position, npc.targetPosition);
+                if (distToTarget > 0.2) {
+                  // Move towards adjacent target
+                  const dirX = npc.targetPosition.x - npc.position.x;
+                  const dirZ = npc.targetPosition.z - npc.position.z;
+                  const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                  const moveDistance = defaultNPCConfig.wanderingSpeedPerMs * 16; // ~16ms per frame
+                  npc.position.x += (dirX / length) * moveDistance;
+                  npc.position.z += (dirZ / length) * moveDistance;
+                } else {
+                  // Reached adjacent target, pick a new adjacent one
+                  npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+                }
+              }
+              break;
+
+            case 'staggered':
+              // No movement while staggered
+              break;
+
+            case 'panic':
+              // Move to adjacent tiles randomly at high speed
+              if (!npc.targetPosition || Vector3.Distance(npc.position, npc.targetPosition) < 0.3) {
+                npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+              }
+              if (npc.targetPosition) {
+                const dirX = npc.targetPosition.x - npc.position.x;
+                const dirZ = npc.targetPosition.z - npc.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                const moveDistance = defaultNPCConfig.panicSpeedPerMs * 16; // ~16ms per frame
+                npc.position.x += (dirX / length) * moveDistance;
+                npc.position.z += (dirZ / length) * moveDistance;
+              }
+              break;
+          }
+
+          // Clamp NPC position to grid boundaries
+          const halfGrid = gridSize / 2;
+          const minBound = -halfGrid + 0.5;
+          const maxBound = halfGrid - 0.5;
+          npc.position.x = Math.max(minBound, Math.min(maxBound, npc.position.x));
+          npc.position.z = Math.max(minBound, Math.min(maxBound, npc.position.z));
+          npc.mesh.position = npc.position;
+        });
       }
       scene.render();
     });

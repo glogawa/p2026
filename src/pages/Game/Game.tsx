@@ -70,6 +70,7 @@ const Game: React.FC = () => {
     onObjectiveCollected: collectObjective,
     collectedObjectives,
     enabled: gameStarted,
+    fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
   });
 
   const loadLevels = () => {
