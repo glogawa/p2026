@@ -422,17 +422,17 @@ export function useGameEngine({
           // Only allow movement if not staggered
           if (!isStaggered) {
             const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
-            // Keyboard movement
-            if (inputMap['w']) {
+            // Keyboard movement (WASD + Arrow keys)
+            if (inputMap['w'] || inputMap['arrowup']) {
               playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.2 * speedMultiplier;
               playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.2 * speedMultiplier;
             }
-            if (inputMap['s']) {
+            if (inputMap['s'] || inputMap['arrowdown']) {
               playerRig.position.x += Math.sin(playerRig.rotation.y) * 0.1 * speedMultiplier;
               playerRig.position.z += Math.cos(playerRig.rotation.y) * 0.1 * speedMultiplier;
             }
-            if (inputMap['a']) playerRig.rotation.y -= 0.025;
-            if (inputMap['d']) playerRig.rotation.y += 0.025;
+            if (inputMap['a'] || inputMap['arrowleft']) playerRig.rotation.y -= 0.025;
+            if (inputMap['d'] || inputMap['arrowright']) playerRig.rotation.y += 0.025;
             // Joystick movement
             playerRig.position.x += joystickMovementRef.current.x * speedMultiplier;
             playerRig.position.z += joystickMovementRef.current.z * speedMultiplier;

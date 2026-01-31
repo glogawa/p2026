@@ -86,7 +86,7 @@ const Game: React.FC = () => {
   useEffect(() => {
     if (gameStarted && gameMode === 'story' && currentLevelIndex === 0 && !welcomeShown) {
       const timer = setTimeout(() => {
-        showNotification('Welcome Sir', 'Your mission begins now...', 'info');
+        showNotification('Congrats, You are now an Undercover Cop!', 'Bad guys are planning to steal artifacts during our Museum Masked Party. Bump into me to get your mask copying skill to work. Then blend with crowd, and Go secure our great stuff!', 'info');
         setWelcomeShown(true);
       }, 2000);
       
