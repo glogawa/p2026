@@ -1,4 +1,4 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonCard, IonCardContent } from '@ionic/react';
 import { useState, useRef, useEffect } from 'react';
 import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
@@ -272,6 +272,18 @@ const Game: React.FC = () => {
             <IonButton className="glass-button" onClick={() => setShowLoadModal(true)} expand="block" style={{ marginBottom: '20px' }}>
               Load Custom Game
             </IonButton>
+            {loadedLevels && loadedLevels.length > 0 && (
+              <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+                <IonCardContent>
+                  <p style={{ marginTop: 0, marginBottom: '10px' }}><strong>✓ Loaded {loadedLevels.length} levels</strong></p>
+                  {loadedLevels.map((level) => (
+                    <p key={level.id} style={{ fontSize: '0.9em', marginBottom: '5px', color: 'rgba(255, 255, 255, 0.8)' }}>
+                      Level {level.id}: {level.gridSize}×{level.gridSize} grid
+                    </p>
+                  ))}
+                </IonCardContent>
+              </IonCard>
+            )}
             <StartScreen onStartGame={handleStartGame} />
           </div>
         )}

@@ -1,4 +1,5 @@
-import { IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonLabel, IonTextarea, IonCard, IonCardContent, IonButtons } from '@ionic/react';
+import { IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonLabel, IonTextarea, IonButtons } from '@ionic/react';
+import { useEffect } from 'react';
 
 interface LoadCustomGameModalProps {
   isOpen: boolean;
@@ -17,6 +18,15 @@ export function LoadCustomGameModal({
   onClose,
   loadedLevels,
 }: LoadCustomGameModalProps) {
+  // Close modal when levels are successfully loaded
+  useEffect(() => {
+    if (loadedLevels && loadedLevels.length > 0) {
+      // Small delay to let the user see the feedback
+      const timer = setTimeout(onClose, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loadedLevels, onClose]);
+
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
@@ -40,18 +50,6 @@ export function LoadCustomGameModal({
         <IonButton className="glass-button" onClick={onLoadLevels} style={{ margin: '15px 0' }} expand="block">
           Load Levels
         </IonButton>
-        {loadedLevels && (
-          <IonCard className="glass-card" style={{ marginTop: '20px' }}>
-            <IonCardContent>
-              <p><strong>Loaded {loadedLevels.length} levels:</strong></p>
-              {loadedLevels.map((level) => (
-                <p key={level.id} style={{ fontSize: '0.9em', marginBottom: '5px' }}>
-                  Level {level.id}: Grid size {level.gridSize}
-                </p>
-              ))}
-            </IonCardContent>
-          </IonCard>
-        )}
       </IonContent>
     </IonModal>
   );
