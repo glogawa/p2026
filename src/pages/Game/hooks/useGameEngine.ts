@@ -3,6 +3,7 @@ import { Engine, Scene, Vector3, MeshBuilder, KeyboardEventTypes, Color3, Standa
 import { createGround } from '../../assets/ground';
 import { createCamera } from '../../assets/camera';
 import { createLight } from '../../assets/light';
+import { createFence, defaultFenceConfig, FenceConfig } from '../../assets/fence';
 
 interface UseGameEngineOptions {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -12,6 +13,7 @@ interface UseGameEngineOptions {
   onObjectiveCollected: (objectivePos: string) => void;
   collectedObjectives: Set<string>;
   enabled: boolean;
+  fenceConfig?: FenceConfig;
 }
 
 export function useGameEngine({
@@ -22,6 +24,7 @@ export function useGameEngine({
   onObjectiveCollected,
   collectedObjectives,
   enabled,
+  fenceConfig = defaultFenceConfig,
 }: UseGameEngineOptions) {
   const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
   const collectedRef = useRef(collectedObjectives);
@@ -100,13 +103,8 @@ export function useGameEngine({
         const [x, y] = pos.split(',').map(Number);
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
-        const fence = MeshBuilder.CreateBox(`fence_${pos}`, { size: 1 }, scene);
-        fence.position = new Vector3(worldX, 0.5, worldZ);
-        const fenceMaterial = new StandardMaterial('fenceMaterial_' + pos, scene);
-        fenceMaterial.diffuseColor = new Color3(0.3, 0.3, 0.3);
-        fenceMaterial.specularColor = new Color3(0.2, 0.2, 0.2);
-        fence.material = fenceMaterial;
-        fenceMeshesRef.current[pos] = fence;
+        createFence(scene, new Vector3(worldX, 0.5, worldZ), fenceConfig);
+        fenceMeshesRef.current[pos] = true;
         fences.push(new Vector3(worldX, 0.5, worldZ));
       }
     });
@@ -149,13 +147,13 @@ export function useGameEngine({
             // Collision detected - apply stagger
             if (!isStaggered) {
               staggerStateRef.current.isStaggered = true;
-              staggerStateRef.current.staggerEndTime = currentTime + 500; // 500ms stagger
+              staggerStateRef.current.staggerEndTime = currentTime + fenceConfig.staggerDuration;
               // Push player back from fence
               const dirX = box.position.x - fencePos.x;
               const dirZ = box.position.z - fencePos.z;
               const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-              box.position.x += (dirX / length) * 0.5;
-              box.position.z += (dirZ / length) * 0.5;
+              box.position.x += (dirX / length) * fenceConfig.bounceDistance;
+              box.position.z += (dirZ / length) * fenceConfig.bounceDistance;
             }
           }
         });
