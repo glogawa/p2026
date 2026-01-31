@@ -1,3 +1,4 @@
-export { WinScreen } from './WinScreen';
-export { LevelLoader } from './LevelLoader';
-export { StartScreen } from './StartScreen';
+// Backward compatibility - components have been moved to ui/ folder
+export { WinScreen } from '../ui/screens';
+export { LevelLoader } from '../ui/loaders';
+export { StartScreen } from '../ui/screens';

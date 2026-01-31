@@ -18,6 +18,8 @@ export function createGround(
     plane.material = gridMaterial;
 
     const objectiveTiles: { [key: string]: { tile: any; material: StandardMaterial } } = {};
+    const startMeshes: any[] = [];
+    const exitMeshes: any[] = [];
 
     // Create 3D models for positions
     Object.entries(positions).forEach(([pos, type]) => {
@@ -32,10 +34,12 @@ export function createGround(
             
             switch (type) {
                 case 'start':
-                    createStart(scene, position);
+                    const startMesh = createStart(scene, position);
+                    startMeshes.push(startMesh);
                     break;
                 case 'end':
-                    createExit(scene, position);
+                    const exitMesh = createExit(scene, position);
+                    exitMeshes.push(exitMesh);
                     break;
                 case 'objective':
                     const objective = createObjective(scene, position);
@@ -48,5 +52,5 @@ export function createGround(
         }
     });
 
-    return objectiveTiles;
+    return { objectiveTiles, groundPlane: plane, groundMaterial: gridMaterial, startMeshes, exitMeshes };
 }
