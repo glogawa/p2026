@@ -1,45 +1,6 @@
 import { Scene, Vector3, MeshBuilder, Color3, StandardMaterial, TransformNode } from '@babylonjs/core';
 
-// Cache for the loaded model function
-let modelLoaded = false;
-
-// Lazy load the door model from public assets
-async function loadDoorModelFunction(): Promise<void> {
-    if (modelLoaded) return;
-    
-    try {
-        const script = document.createElement('script');
-        script.src = '/assets/modelStart.js';
-        script.type = 'text/javascript';
-        
-        await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-        
-        modelLoaded = true;
-    } catch (error) {
-        console.warn('Failed to load modelStart.js, using fallback:', error);
-    }
-}
-
-export async function createStart(scene: Scene, position: Vector3): Promise<any> {
-    // Lazy load the external model
-    await loadDoorModelFunction();
-    
-    // Try to use the door model from public assets if loaded
-    const global = window as any;
-    if (global.createDoorModel && typeof global.createDoorModel === 'function') {
-        return global.createDoorModel(scene, position);
-    }
-    
-    // Fallback: create the model programmatically
-    return createDoorModelFallback(scene, position);
-}
-
-// Fallback function in case the external model isn't loaded
-function createDoorModelFallback(scene: Scene, position: Vector3): any {
+export function createStart(scene: Scene, position: Vector3): any {
     // ================= MATERIALS =================
     const doorMat = new StandardMaterial("doorMat", scene);
     doorMat.diffuseColor = new Color3(0.79, 0.55, 0.29);
