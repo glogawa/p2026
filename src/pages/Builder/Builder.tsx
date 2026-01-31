@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonInput, IonLabel, IonItem, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonIcon, IonGrid, IonRow, IonCol, IonCardHeader, IonCardTitle } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
-import { clipboardOutline } from 'ionicons/icons';
+import { clipboardOutline, menuOutline } from 'ionicons/icons';
 import ToggleLightDark from '../../components/utils/toggleLightDark';
+import PageHeader from '../../components/PageHeader';
 
 interface Level {
     id: number;
@@ -59,17 +60,7 @@ const Builder: React.FC = () => {
 
     return (
         <IonPage>
-            <IonHeader>
-                <IonToolbar>
-                    <IonTitle>Level Builder</IonTitle>
-                    <IonButtons slot="start">
-                        <IonMenuToggle />
-                    </IonButtons>
-                    <IonButtons slot="end">
-                        <ToggleLightDark />
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            <PageHeader title="Level Builder" />
             <IonContent fullscreen>
                 <IonHeader collapse="condense">
                     <IonToolbar>

@@ -1,17 +1,12 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonIcon } from '@ionic/react';
+import { menuOutline } from 'ionicons/icons';
 import ToggleLightDark from '../components/utils/toggleLightDark';
+import PageHeader from '../components/PageHeader';
 
 const Home: React.FC = () => {
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Home</IonTitle>
-          <IonButtons slot="end">
-            <ToggleLightDark />
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
+      <PageHeader title="Home" />
       <IonContent fullscreen>
         <IonHeader collapse="condense">
           <IonToolbar>

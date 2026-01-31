@@ -1,12 +1,12 @@
 import { Redirect, Route } from 'react-router-dom';
-import { IonApp, IonRouterOutlet, IonToast, IonSplitPane, setupIonicReact } from '@ionic/react';
+import { IonApp, IonRouterOutlet, IonToast, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { useEffect, useState } from 'react';
-import { Workbox } from 'workbox-window';
+import { useEffect, useState, useRef } from 'react';
 import Home from './pages/Home';
 import Game from './pages/Game/Game';
 import Builder from './pages/Builder/Builder';
 import Menu from './components/Menu';
+import { MenuProvider } from './context/MenuContext';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -42,22 +42,65 @@ setupIonicReact();
 
 const App: React.FC = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const updateListenerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      const wb = new Workbox('/sw.js');
-      wb.addEventListener('waiting', () => {
-        setUpdateAvailable(true);
+      // Vite PWA automatically generates sw.js, no need to provide a custom path
+      navigator.serviceWorker.register('/sw.js').then((registration) => {
+        console.log('Service worker registered');
+        
+        // Check if there's already a waiting service worker on first load
+        if (registration.waiting) {
+          console.log('Waiting service worker found on registration');
+          setUpdateAvailable(true);
+        }
+
+        // Listen for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New service worker installed and waiting');
+                setUpdateAvailable(true);
+              }
+            });
+          }
+        });
+
+        // Listen for controller change
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('Service worker controller changed');
+          window.location.reload();
+        });
+      }).catch((error) => {
+        console.error('Service worker registration failed:', error);
       });
-      wb.register();
     }
+
+    return () => {
+      if (updateListenerRef.current) {
+        updateListenerRef.current();
+      }
+    };
   }, []);
 
   const reloadApp = () => {
-    const wb = new Workbox('/sw.js');
-    wb.messageSW({ type: 'SKIP_WAITING' }).then(() => {
-      window.location.reload();
-    });
+    console.log('Reload triggered');
+    setUpdateAvailable(false);
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) {
+          console.log('Sending SKIP_WAITING to service worker');
+          // Tell the waiting service worker to skip the waiting period
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      }).catch((error) => {
+        console.error('Failed to get service worker registration:', error);
+      });
+    }
   };
 
   const dismissUpdate = () => {
@@ -66,9 +109,9 @@ const App: React.FC = () => {
 
   return (
     <IonApp>
-      <IonSplitPane contentId="main-content">
-        <Menu />
+      <MenuProvider>
         <IonReactRouter>
+          <Menu />
           <IonRouterOutlet id="main-content">
             <Route exact path="/home">
               <Home />
@@ -84,7 +127,7 @@ const App: React.FC = () => {
             </Route>
           </IonRouterOutlet>
         </IonReactRouter>
-      </IonSplitPane>
+      </MenuProvider>
       <IonToast
         isOpen={updateAvailable}
         message="A new version is available. Reload to update."
