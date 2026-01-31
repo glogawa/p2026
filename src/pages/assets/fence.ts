@@ -19,6 +19,7 @@ export function createFence(scene: Scene, position: Vector3, config: FenceConfig
   material.diffuseColor = new Color3(0.3, 0.3, 0.3); // Dark gray
   material.specularColor = new Color3(0.2, 0.2, 0.2);
   fence.material = material;
+  (fence as any).fenceMaterial = material; // Store for later disposal
 
   // Store config on the fence for later use
   (fence as any).fenceConfig = config;
