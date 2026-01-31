@@ -1,5 +1,6 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonCard, IonCardContent } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonCard, IonCardContent, IonIcon } from '@ionic/react';
 import { useState, useRef, useEffect } from 'react';
+import { arrowBack } from 'ionicons/icons';
 import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
@@ -173,8 +174,8 @@ const Game: React.FC = () => {
       });
       setPlayerStats(storyModeData.general.playerStats);
       setNPCStats(storyModeData.general.npcStats);
-      setLoadedLevels(storyModeData.locations);
-      startGame(storyModeData.locations);
+      setLoadedLevels(storyModeData.locations as unknown as Level[]);
+      startGame(storyModeData.locations as unknown as Level[]);
     } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
     } else if (gameMode === 'sandbox') {
@@ -198,8 +199,8 @@ const Game: React.FC = () => {
       });
       setPlayerStats(storyModeData.general.playerStats);
       setNPCStats(storyModeData.general.npcStats);
-      setLoadedLevels(storyModeData.locations);
-      startGame(storyModeData.locations);
+      setLoadedLevels(storyModeData.locations as unknown as Level[]);
+      startGame(storyModeData.locations as unknown as Level[]);
     } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
     } else if (gameMode === 'sandbox') {
@@ -297,20 +298,20 @@ const Game: React.FC = () => {
             <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
               <IonCardContent>
                 <p style={{ margin: '0 0 10px 0' }}><strong>Story Mode</strong></p>
-                <p style={{ margin: '0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
+                <p style={{ margin: '0 0 15px 0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
                   Follow the narrative with carefully crafted levels
                 </p>
+                <StartScreen onStartGame={handleStartGame} />
                 <IonButton
                   className="glass-button"
                   onClick={() => setGameMode('selection')}
                   expand="block"
-                  style={{ marginTop: '15px' }}
+                  style={{ marginTop: '10px' }}
                 >
-                  Back
+                  <IonIcon icon={arrowBack} slot="start" />
                 </IonButton>
               </IonCardContent>
             </IonCard>
-            <StartScreen onStartGame={handleStartGame} />
           </div>
         )}
         {!gameWon && !gameLost && gameMode === 'custom' && (
@@ -330,15 +331,19 @@ const Game: React.FC = () => {
                 </IonCardContent>
               </IonCard>
             )}
-            <StartScreen onStartGame={handleStartGame} />
-            <IonButton
-              className="glass-button"
-              onClick={() => setGameMode('selection')}
-              expand="block"
-              style={{ marginTop: '15px' }}
-            >
-              Back
-            </IonButton>
+            <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+              <IonCardContent>
+                <StartScreen onStartGame={handleStartGame} />
+                <IonButton
+                  className="glass-button"
+                  onClick={() => setGameMode('selection')}
+                  expand="block"
+                  style={{ marginTop: '10px' }}
+                >
+                  <IonIcon icon={arrowBack} slot="start" />
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
           </div>
         )}
         {!gameWon && !gameLost && gameMode === 'sandbox' && (
@@ -346,20 +351,20 @@ const Game: React.FC = () => {
             <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
               <IonCardContent>
                 <p style={{ margin: '0 0 10px 0' }}><strong>Sandbox Mode</strong></p>
-                <p style={{ margin: '0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
+                <p style={{ margin: '0 0 15px 0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
                   Generate random levels for endless fun
                 </p>
+                <StartScreen onStartGame={handleStartGame} />
                 <IonButton
                   className="glass-button"
                   onClick={() => setGameMode('selection')}
                   expand="block"
-                  style={{ marginTop: '15px' }}
+                  style={{ marginTop: '10px' }}
                 >
-                  Back
+                  <IonIcon icon={arrowBack} slot="start" />
                 </IonButton>
               </IonCardContent>
             </IonCard>
-            <StartScreen onStartGame={handleStartGame} />
           </div>
         )}
       </IonContent>
