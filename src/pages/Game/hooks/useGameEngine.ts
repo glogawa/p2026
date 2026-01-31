@@ -16,6 +16,7 @@ interface UseGameEngineOptions {
   collectedObjectives: Set<string>;
   enabled: boolean;
   fenceConfig?: FenceConfig;
+  showNPCGui?: boolean;
 }
 
 export function useGameEngine({
@@ -27,6 +28,7 @@ export function useGameEngine({
   collectedObjectives,
   enabled,
   fenceConfig = defaultFenceConfig,
+  showNPCGui = true,
 }: UseGameEngineOptions) {
   const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
   const collectedRef = useRef(collectedObjectives);
@@ -37,6 +39,7 @@ export function useGameEngine({
   const npcsRef = useRef<NPCInstance[]>([]);
   const playerStaggerTimeRef = useRef(0);
   const lastFrameTimeRef = useRef<number>(performance.now());
+  const guiTextureRef = useRef<AdvancedDynamicTexture | null>(null);
 
   // Update the refs when callbacks change
   useEffect(() => {
@@ -47,6 +50,20 @@ export function useGameEngine({
     onObjectiveCollectedRef.current = onObjectiveCollected;
     onLevelCompleteRef.current = onLevelComplete;
   }, [onObjectiveCollected, onLevelComplete]);
+
+  // Handle NPC GUI visibility toggle
+  useEffect(() => {
+    if (guiTextureRef.current) {
+      npcsRef.current.forEach((npc) => {
+        if (npc.guiRect) {
+          npc.guiRect.isVisible = showNPCGui;
+        }
+        if (npc.guiLine) {
+          npc.guiLine.isVisible = showNPCGui;
+        }
+      });
+    }
+  }, [showNPCGui]);
 
   useEffect(() => {
     if (!enabled || !canvasRef.current || !currentLevel) return;
@@ -118,6 +135,7 @@ export function useGameEngine({
     const now = performance.now();
     // Create GUI texture for NPC labels
     const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("NPCLabelsUI");
+    guiTextureRef.current = guiTexture;
     
     Object.entries(currentLevel.positions).forEach(([pos, type]) => {
       if (type === 'npc') {
@@ -133,8 +151,14 @@ export function useGameEngine({
         };
         npcsRef.current.push(npcInstance);
         
-        // Attach GUI label to NPC
+        // Attach GUI label to NPC (and set initial visibility)
         attachNPCGUI(npcInstance, scene, guiTexture);
+        if (npcInstance.guiRect) {
+          npcInstance.guiRect.isVisible = showNPCGui;
+        }
+        if (npcInstance.guiLine) {
+          npcInstance.guiLine.isVisible = showNPCGui;
+        }
       }
     });
 
@@ -351,5 +375,5 @@ export function useGameEngine({
     return () => {
       engine.dispose();
     };
-  }, [enabled, canvasRef, currentLevel, joystickMovement]);
+  }, [enabled, canvasRef, currentLevel, joystickMovement, showNPCGui]);
 }

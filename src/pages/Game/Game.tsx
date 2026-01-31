@@ -26,6 +26,7 @@ const Game: React.FC = () => {
   const [pastedJson, setPastedJson] = useState<string>('');
   const [fenceConfig, setFenceConfig] = useState({ staggerDuration: 500, bounceDistance: 0.2 });
   const [fps, setFps] = useState<number>(0);
+  const [showNPCGui, setShowNPCGui] = useState<boolean>(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -60,8 +61,16 @@ const Game: React.FC = () => {
       }
     }, 1000); // Update every second
 
-    return () => clearInterval(fpsInterval);
-  }, []);
+    return () => {
+      clearInterval(fpsInterval);
+      // Reset FPS counter when game ends
+      if (!gameStarted) {
+        setFps(0);
+        fpsCounterRef.current.frameCount = 0;
+        fpsCounterRef.current.lastTime = performance.now();
+      }
+    };
+  }, [gameStarted]);
 
   // Increment frame counter on each animation frame
   useEffect(() => {
@@ -100,6 +109,7 @@ const Game: React.FC = () => {
     collectedObjectives,
     enabled: gameStarted,
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
+    showNPCGui,
   });
 
   const loadLevels = () => {
@@ -152,6 +162,32 @@ const Game: React.FC = () => {
           <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
             <FpsCounter fps={fps} />
+            <button 
+              onClick={() => setShowNPCGui(!showNPCGui)}
+              style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: '20px',
+                padding: '8px 16px',
+                backgroundColor: showNPCGui ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                zIndex: 1000,
+                transition: 'background-color 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = showNPCGui ? 'rgba(76, 175, 80, 1)' : 'rgba(244, 67, 54, 1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = showNPCGui ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)';
+              }}
+            >
+              {showNPCGui ? 'Hide NPC GUI' : 'Show NPC GUI'}
+            </button>
           </div>
         </IonContent>
       </IonPage>

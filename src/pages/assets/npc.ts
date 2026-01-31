@@ -54,10 +54,11 @@ export function createNPC(scene: Scene, position: Vector3): any {
 export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: AdvancedDynamicTexture): void {
   // Create a rectangle to display the state
   const stateRect = new Rectangle();
+  const borderColor = "#ffffff55";
   stateRect.width = 0.15;
   stateRect.height = '40px';
   stateRect.cornerRadius = 10;
-  stateRect.color = 'grey';
+  stateRect.color = borderColor;
   stateRect.thickness = 1;
   stateRect.background = 'rgba(0, 0, 0, 0.7)';
   textureRef.addControl(stateRect);
@@ -76,7 +77,7 @@ export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: Advance
   // Create a line connecting to the state label
   const line = new Line();
   line.lineWidth = 2;
-  line.color = 'grey';
+  line.color = borderColor;
   line.y2 = 20;
   line.linkOffsetY = 0;
   textureRef.addControl(line);
