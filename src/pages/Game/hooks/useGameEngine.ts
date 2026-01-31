@@ -5,7 +5,7 @@ import { createGround } from '../../assets/ground';
 import { createCamera } from '../../assets/camera';
 import { createLight } from '../../assets/light';
 import { createFence, defaultFenceConfig, FenceConfig } from '../../assets/fence';
-import { createNPC, defaultNPCConfig, NPCInstance, NPCState, changeNPCState, findNearestNPC, getRandomPositionInGrid, getNextNPCState, getRandomAdjacentPosition, attachNPCGUI, updateNPCGUILabel } from '../../assets/npc';
+import { createNPC, defaultNPCConfig, NPCInstance, NPCState, changeNPCState, findNearestNPC, getRandomPositionInGrid, getNextNPCState, getRandomAdjacentPosition, attachNPCGUI, updateNPCGUILabel, generateNPCStats, NPCStatsConfig } from '../../assets/npc';
 
 interface UseGameEngineOptions {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -17,6 +17,7 @@ interface UseGameEngineOptions {
   enabled: boolean;
   fenceConfig?: FenceConfig;
   showNPCGui?: boolean;
+  npcStats?: NPCStatsConfig;
 }
 
 export function useGameEngine({
@@ -29,6 +30,7 @@ export function useGameEngine({
   enabled,
   fenceConfig = defaultFenceConfig,
   showNPCGui = true,
+  npcStats,
 }: UseGameEngineOptions) {
   const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
   const collectedRef = useRef(collectedObjectives);
@@ -165,11 +167,19 @@ export function useGameEngine({
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
         const npcMesh = createNPC(scene, new Vector3(worldX, 0.5, worldZ));
+        
+        let npcStats_data = { stamina: 3, agility: 5 };
+        if (npcStats) {
+          npcStats_data = generateNPCStats(npcStats);
+        }
+        
         const npcInstance: NPCInstance = {
           mesh: npcMesh,
           position: new Vector3(worldX, 0.5, worldZ),
           state: 'thinking',
           stateStartTime: now,
+          stamina: npcStats_data.stamina,
+          agility: npcStats_data.agility,
         };
         npcsRef.current.push(npcInstance);
         
@@ -274,7 +284,7 @@ export function useGameEngine({
           if (distanceToPlayer < 1.0) {
             if (npc.state !== 'staggered' && npc.state !== 'panic') {
               // NPC gets staggered
-              changeNPCState(npc, 'staggered', currentTime);
+              changeNPCState(npc, 'staggered', currentTime, undefined, box.position);
               npc.panicStartTime = currentTime;
               // Push NPC back
               const dirX = npc.position.x - box.position.x;
@@ -294,7 +304,7 @@ export function useGameEngine({
           // Check if NPC should transition to a new state
           const nextState = getNextNPCState(npc, npcsRef.current, currentTime);
           if (nextState) {
-            changeNPCState(npc, nextState, currentTime, gridSize);
+            changeNPCState(npc, nextState, currentTime, gridSize, box.position);
           }
 
           // NPC state machine - movement and behavior
