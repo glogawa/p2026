@@ -116,6 +116,13 @@ export function useGameEngine({
         box.position.x += joystickMovement.x;
         box.position.z += joystickMovement.z;
 
+        // Clamp player position to grid boundaries
+        const halfGrid = gridSize / 2;
+        const minBound = -halfGrid + 0.5;
+        const maxBound = halfGrid - 0.5;
+        box.position.x = Math.max(minBound, Math.min(maxBound, box.position.x));
+        box.position.z = Math.max(minBound, Math.min(maxBound, box.position.z));
+
         // Check if reached objective
         Object.entries(objectives).forEach(([objectivePos, objectiveVector]) => {
           if (!collectedRef.current.has(objectivePos) && Vector3.Distance(box.position, objectiveVector) < 0.5) {

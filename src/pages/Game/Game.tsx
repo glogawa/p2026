@@ -7,6 +7,7 @@ import { WinScreen } from './components/WinScreen';
 import { LevelLoader } from './components/LevelLoader';
 import { StartScreen } from './components/StartScreen';
 import PageHeader from '../../components/PageHeader';
+import { generateRandomLevels } from './utils/generateRandomLevel';
 import './Game.css';
 
 interface Level {
@@ -74,12 +75,22 @@ const Game: React.FC = () => {
   const handleStartGame = () => {
     if (loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
+    } else {
+      // Generate random levels if none are loaded
+      const randomLevels = generateRandomLevels();
+      setLoadedLevels(randomLevels);
+      startGame(randomLevels);
     }
   };
 
   const handlePlayAgain = () => {
     if (loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
+    } else {
+      // Generate random levels if none are loaded
+      const randomLevels = generateRandomLevels();
+      setLoadedLevels(randomLevels);
+      startGame(randomLevels);
     }
   };
 
