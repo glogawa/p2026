@@ -35,10 +35,26 @@ export async function createGround(
             switch (type) {
                 case 'start':
                     const startMesh = await createStart(scene, position, 0.8, -0.4);
+                    // Determine rotation based on edge position for doors to face inward
+                    // x=0 is left, x=gridSize-1 is right, y=0 is back, y=gridSize-1 is front
+                    let startRotation = 0;
+                    if (x === 0) startRotation = Math.PI / 2; // Left edge, face right (inward, +X)
+                    else if (x === gridSize - 1) startRotation = -Math.PI / 2; // Right edge, face left (inward, -X)
+                    else if (y === 0) startRotation = 0; // Back edge, face forward (inward, +Z)
+                    else if (y === gridSize - 1) startRotation = Math.PI; // Front edge, face back (inward, -Z)
+                    startMesh.rotation.y = startRotation;
                     startMeshes.push(startMesh);
                     break;
                 case 'end':
                     const exitMesh = createExit(scene, position, 0.8, -0.4);
+                    // Determine rotation based on edge position for doors to face inward
+                    // x=0 is left, x=gridSize-1 is right, y=0 is back, y=gridSize-1 is front
+                    let exitRotation = 0;
+                    if (x === 0) exitRotation = Math.PI / 2; // Left edge, face right (inward, +X)
+                    else if (x === gridSize - 1) exitRotation = -Math.PI / 2; // Right edge, face left (inward, -X)
+                    else if (y === 0) exitRotation = 0; // Back edge, face forward (inward, +Z)
+                    else if (y === gridSize - 1) exitRotation = Math.PI; // Front edge, face back (inward, -Z)
+                    exitMesh.rotation.y = exitRotation;
                     exitMeshes.push(exitMesh);
                     break;
                 case 'objective':
