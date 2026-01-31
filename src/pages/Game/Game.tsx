@@ -179,7 +179,22 @@ const Game: React.FC = () => {
     onLevelComplete: () => {
       if (loadedLevels) {
         resetCollectedObjectives();
-        nextLevel(loadedLevels);
+        
+        // For sandbox mode, generate more levels when approaching the end
+        if (gameMode === 'sandbox' && currentLevelIndex + 1 >= loadedLevels.length - 10) {
+          // Generate 50 more levels when within 10 levels of the end
+          const newLevels = generateRandomLevels(50);
+          // Update level IDs to continue from current max
+          const maxId = Math.max(...loadedLevels.map(l => l.id));
+          newLevels.locations.forEach((level, idx) => {
+            level.id = maxId + idx + 1;
+          });
+          const updatedLevels = [...loadedLevels, ...newLevels.locations];
+          setLoadedLevels(updatedLevels);
+          nextLevel(updatedLevels);
+        } else {
+          nextLevel(loadedLevels);
+        }
       }
     },
     onObjectiveCollected: collectObjective,
@@ -239,7 +254,7 @@ const Game: React.FC = () => {
     } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
     } else if (gameMode === 'sandbox') {
-      const randomData = generateRandomLevels();
+      const randomData = generateRandomLevels(100); // Generate 100 levels for sandbox
       setFenceConfig({
         staggerDuration: randomData.general.fenceStaggerDurationMs,
         bounceDistance: randomData.general.fenceBounceDistance,
@@ -272,7 +287,7 @@ const Game: React.FC = () => {
     } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
     } else if (gameMode === 'sandbox') {
-      const randomData = generateRandomLevels();
+      const randomData = generateRandomLevels(100); // Generate 100 levels for sandbox
       setFenceConfig({
         staggerDuration: randomData.general.fenceStaggerDurationMs,
         bounceDistance: randomData.general.fenceBounceDistance,
