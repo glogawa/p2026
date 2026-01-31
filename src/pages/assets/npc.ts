@@ -1,5 +1,6 @@
-import { Scene, MeshBuilder, Color3, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color3, StandardMaterial, Vector3, TransformNode } from '@babylonjs/core';
 import { AdvancedDynamicTexture, Rectangle, TextBlock, Line, Ellipse } from '@babylonjs/gui';
+import { createRandomNPCModel } from './npcModels';
 
 export interface NPCConfig {
   thinkingDurationMs: number; // How long NPCs stand still
@@ -41,18 +42,14 @@ export interface NPCInstance {
   agility?: number;
 }
 
-export function createNPC(scene: Scene, position: Vector3): any {
-  // Create reverse pyramid using a cylinder that's tapered
-  const npc = MeshBuilder.CreateCylinder('npc', { diameterTop: 0, diameterBottom: 0.8, height: 1, tessellation: 8 }, scene);
-  npc.position = position;
-
-  const material = new StandardMaterial('npcMaterial', scene);
-  material.diffuseColor = new Color3(1, 0.647, 0); // Orange
-  material.specularColor = new Color3(0.2, 0.2, 0.2);
-  npc.material = material;
-  (npc as any).npcMaterial = material; // Store for later disposal
-
-  return npc;
+export function createNPC(scene: Scene, position: Vector3, scale: number = 1): TransformNode {
+  // Create a random NPC model with the specified scale
+  const npcRig = createRandomNPCModel(scene, scale);
+  
+  // Set the position
+  npcRig.position = position;
+  
+  return npcRig;
 }
 
 export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: AdvancedDynamicTexture): void {

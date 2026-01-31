@@ -170,7 +170,7 @@ export function useGameEngine({
           const [x, y] = pos.split(',').map(Number);
           const worldX = x - gridSize / 2 + 0.5;
           const worldZ = y - gridSize / 2 + 0.5;
-          const npcMesh = createNPC(scene, new Vector3(worldX, 0, worldZ));
+          const npcMesh = createNPC(scene, new Vector3(worldX, 0, worldZ), 0.5);
           
           let npcStats_data = { stamina: 3, agility: 5 };
           if (npcStats) {
@@ -244,23 +244,27 @@ export function useGameEngine({
             playerRig.position.z += joystickMovementRef.current.z * speedMultiplier;
           }
 
-        // Check fence collisions
-        fences.forEach((fencePos) => {
-          const distance = Vector3.Distance(playerRig.position, fencePos);
-          if (distance < 1.0 && !isStaggered) {
-            // Collision detected - apply stagger
-            staggerStateRef.current.isStaggered = true;
-            staggerStateRef.current.staggerEndTime = currentTime + fenceConfig.staggerDuration;
-            // Push player back from fence
-            const dirX = playerRig.position.x - fencePos.x;
-            const dirZ = playerRig.position.z - fencePos.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-            playerRig.position.x += (dirX / length) * fenceConfig.bounceDistance;
-            playerRig.position.z += (dirZ / length) * fenceConfig.bounceDistance;
-          }
-        });
+        // Check fence collisions (fence is 1x1 box, so collision radius is ~0.7 from center to corner)
+        // Only check if not already staggered to prevent repeated collisions
+        if (!isStaggered) {
+          fences.forEach((fencePos) => {
+            const distance = Vector3.Distance(playerRig.position, fencePos);
+            const collisionRadius = 0.65; // Slightly larger than fence radius (0.5) to catch near-misses
+            if (distance < collisionRadius) {
+              // Collision detected - apply stagger
+              staggerStateRef.current.isStaggered = true;
+              staggerStateRef.current.staggerEndTime = currentTime + fenceConfig.staggerDuration;
+              // Push player back from fence
+              const dirX = playerRig.position.x - fencePos.x;
+              const dirZ = playerRig.position.z - fencePos.z;
+              const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+              playerRig.position.x += (dirX / length) * fenceConfig.bounceDistance;
+              playerRig.position.z += (dirZ / length) * fenceConfig.bounceDistance;
+            }
+          });
+        }
 
-        // Clamp player position to grid boundaries
+        // Clamp player position to grid boundaries (with slight margin for visual smoothness)
         const halfGrid = gridSize / 2;
         const minBound = -halfGrid + 0.5;
         const maxBound = halfGrid - 0.5;
@@ -291,8 +295,9 @@ export function useGameEngine({
           const timeSinceStateChange = currentTime - npc.stateStartTime;
           const distanceToPlayer = Vector3.Distance(playerRig.position, npc.position);
 
-          // Check player collision with NPC
-          if (distanceToPlayer < 1.0) {
+          // Check player collision with NPC (both are ~0.5 units in size, collision at ~0.65 units)
+          const npcCollisionRadius = 0.65;
+          if (distanceToPlayer < npcCollisionRadius && !isStaggered) {
             if (npc.state !== 'staggered' && npc.state !== 'panic') {
               // NPC gets staggered
               changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
@@ -305,11 +310,9 @@ export function useGameEngine({
               npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance;
             }
             // Player enters stagger state
-            if (!isStaggered) {
-              playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
-              staggerStateRef.current.isStaggered = true;
-              staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
-            }
+            playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
+            staggerStateRef.current.isStaggered = true;
+            staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
           }
 
           // Check if NPC should transition to a new state
