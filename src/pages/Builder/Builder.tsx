@@ -9,10 +9,21 @@ interface Level {
     positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
 }
 
+interface GeneralSettings {
+    fenceStaggerDurationMs: number;
+    fenceBounceDistance: number;
+}
+
 const defaultGridSize = 10;
+const defaultGeneralSettings: GeneralSettings = {
+    fenceStaggerDurationMs: 500,
+    fenceBounceDistance: 0.2,
+};
+
 const Builder: React.FC = () => {
     const [numLevels, setNumLevels] = useState<number>(1);
     const [levels, setLevels] = useState<Level[]>([{ id: 1, gridSize: defaultGridSize, positions: {} }]);
+    const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(defaultGeneralSettings);
     const [generatedCode, setGeneratedCode] = useState<string>('');
     const [selected, setSelected] = useState<{ levelId: number; pos: string } | null>(null);
     const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -48,7 +59,11 @@ const Builder: React.FC = () => {
             ...level,
             positions: Object.fromEntries(Object.entries(level.positions).filter(([_, v]) => v !== null))
         }));
-        const code = JSON.stringify(cleanedLevels, null, 2);
+        const output = {
+            general: generalSettings,
+            locations: cleanedLevels,
+        };
+        const code = JSON.stringify(output, null, 2);
         setGeneratedCode(code);
     };
 
@@ -119,6 +134,30 @@ const Builder: React.FC = () => {
                                             min="1"
                                         />
                                     </IonItem>
+                                    <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '5px' }}>
+                                        <h4 style={{ margin: '0 0 15px 0', color: 'var(--ion-text-color)' }}>Fence Settings</h4>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Stagger Duration (ms)</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.fenceStaggerDurationMs}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, fenceStaggerDurationMs: parseInt(e.detail.value!) || 500 })}
+                                                min="100"
+                                                max="2000"
+                                            />
+                                        </IonItem>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Bounce Distance</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.fenceBounceDistance}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, fenceBounceDistance: parseFloat(e.detail.value!) || 0.2 })}
+                                                min="0.1"
+                                                max="2"
+                                                step="0.1"
+                                            />
+                                        </IonItem>
+                                    </div>
                                     {levels.map((level) => {
                                         const displaySize = Math.min(level.gridSize, 20);
                                         return (
