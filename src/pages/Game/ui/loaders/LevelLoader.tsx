@@ -17,7 +17,7 @@ export function LevelLoader({
   return (
     <>
       <IonItem>
-        <IonLabel position="stacked">Paste Levels JSON</IonLabel>
+        <IonLabel position="stacked">Paste Levels JSON (tambah lagi)</IonLabel>
         <IonTextarea
           value={pastedJson}
           onIonChange={(e) => onJsonChange(e.detail.value!)}
