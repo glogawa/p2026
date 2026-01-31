@@ -12,11 +12,14 @@ interface UseGameStateReturn {
   currentLevelIndex: number;
   gameWon: boolean;
   loadedLevels: Level[] | null;
+  collectedObjectives: Set<string>;
   startGame: (levels: Level[]) => void;
   nextLevel: (allLevels: Level[]) => void;
   endGame: () => void;
   setLoadedLevels: (levels: Level[]) => void;
   resetGame: () => void;
+  collectObjective: (objectivePos: string) => void;
+  resetCollectedObjectives: () => void;
 }
 
 export function useGameState(): UseGameStateReturn {
@@ -25,6 +28,7 @@ export function useGameState(): UseGameStateReturn {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [loadedLevels, setLoadedLevels] = useState<Level[] | null>(null);
+  const [collectedObjectives, setCollectedObjectives] = useState<Set<string>>(new Set());
 
   const startGame = useCallback((levels: Level[]) => {
     if (levels.length > 0) {
@@ -54,6 +58,15 @@ export function useGameState(): UseGameStateReturn {
     setCurrentLevel(null);
     setCurrentLevelIndex(0);
     setGameWon(false);
+    setCollectedObjectives(new Set());
+  }, []);
+
+  const collectObjective = useCallback((objectivePos: string) => {
+    setCollectedObjectives((prev) => new Set(prev).add(objectivePos));
+  }, []);
+
+  const resetCollectedObjectives = useCallback(() => {
+    setCollectedObjectives(new Set());
   }, []);
 
   return {
@@ -62,10 +75,13 @@ export function useGameState(): UseGameStateReturn {
     currentLevelIndex,
     gameWon,
     loadedLevels,
+    collectedObjectives,
     startGame,
     nextLevel,
     endGame,
     setLoadedLevels,
     resetGame,
+    collectObjective,
+    resetCollectedObjectives,
   };
 }

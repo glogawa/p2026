@@ -1,7 +1,15 @@
 import { Scene, MeshBuilder, Color3, StandardMaterial, Vector3 } from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials/grid';
+import { createObjective } from './objective';
+import { createStart } from './start';
+import { createExit } from './exit';
 
-export function createGround(scene: Scene, gridSize: number, positions: { [key: string]: 'start' | 'end' | 'objective' | null }) {
+export function createGround(
+  scene: Scene,
+  gridSize: number,
+  positions: { [key: string]: 'start' | 'end' | 'objective' | null },
+  collectedObjectives?: Set<string>
+) {
     const plane = MeshBuilder.CreateGround("ground", { width: gridSize, height: gridSize }, scene);
     const gridMaterial = new GridMaterial("grid", scene);
     gridMaterial.gridRatio = 1;
@@ -9,27 +17,36 @@ export function createGround(scene: Scene, gridSize: number, positions: { [key: 
     gridMaterial.lineColor = new Color3(0, 0, 0);
     plane.material = gridMaterial;
 
-    // Create colored tiles for positions
+    const objectiveTiles: { [key: string]: { tile: any; material: StandardMaterial } } = {};
+
+    // Create 3D models for positions
     Object.entries(positions).forEach(([pos, type]) => {
         if (type) {
             const [x, y] = pos.split(',').map(Number);
             const worldX = x - gridSize / 2 + 0.5;
             const worldZ = y - gridSize / 2 + 0.5;
-            const tile = MeshBuilder.CreateGround(`tile_${x}_${y}`, { width: 1, height: 1 }, scene);
-            tile.position = new Vector3(worldX, 0.01, worldZ); // Slightly above ground
-            const material = new StandardMaterial(`tileMat_${x}_${y}`, scene);
+            const position = new Vector3(worldX, 0.35, worldZ);
+            
+            // Check if objective is collected
+            const isCollected = collectedObjectives?.has(pos) ?? false;
+            
             switch (type) {
                 case 'start':
-                    material.diffuseColor = new Color3(0, 1, 0); // Green
+                    createStart(scene, position);
                     break;
                 case 'end':
-                    material.diffuseColor = new Color3(1, 0, 0); // Red
+                    createExit(scene, position);
                     break;
                 case 'objective':
-                    material.diffuseColor = new Color3(0, 0, 1); // Blue
+                    const objective = createObjective(scene, position);
+                    if (isCollected) {
+                        objective.isVisible = false;
+                    }
+                    objectiveTiles[pos] = { tile: objective, material: objective.material };
                     break;
             }
-            tile.material = material;
         }
     });
+
+    return objectiveTiles;
 }

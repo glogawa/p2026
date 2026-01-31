@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Engine, Scene, Vector3, MeshBuilder, KeyboardEventTypes } from '@babylonjs/core';
+import { Engine, Scene, Vector3, MeshBuilder, KeyboardEventTypes, Color3 } from '@babylonjs/core';
 import { createGround } from '../pages/assets/ground';
 import { createCamera } from '../pages/assets/camera';
 import { createLight } from '../pages/assets/light';
@@ -9,6 +9,8 @@ interface UseGameEngineOptions {
   currentLevel: any;
   joystickMovement: { x: number; z: number };
   onLevelComplete: () => void;
+  onObjectiveCollected: (objectivePos: string) => void;
+  collectedObjectives: Set<string>;
   enabled: boolean;
 }
 
@@ -17,8 +19,25 @@ export function useGameEngine({
   currentLevel,
   joystickMovement,
   onLevelComplete,
+  onObjectiveCollected,
+  collectedObjectives,
   enabled,
 }: UseGameEngineOptions) {
+  const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
+  const collectedRef = useRef(collectedObjectives);
+  const onObjectiveCollectedRef = useRef(onObjectiveCollected);
+  const onLevelCompleteRef = useRef(onLevelComplete);
+
+  // Update the refs when callbacks change
+  useEffect(() => {
+    collectedRef.current = collectedObjectives;
+  }, [collectedObjectives]);
+
+  useEffect(() => {
+    onObjectiveCollectedRef.current = onObjectiveCollected;
+    onLevelCompleteRef.current = onLevelComplete;
+  }, [onObjectiveCollected, onLevelComplete]);
+
   useEffect(() => {
     if (!enabled || !canvasRef.current || !currentLevel) return;
 
@@ -27,7 +46,8 @@ export function useGameEngine({
     createCamera(scene, canvasRef.current);
     createLight(scene);
     const gridSize = currentLevel.gridSize;
-    createGround(scene, gridSize, currentLevel.positions);
+    const objectiveTiles = createGround(scene, gridSize, currentLevel.positions, collectedRef.current);
+    objectiveTilesRef.current = objectiveTiles;
 
     // Focus canvas
     canvasRef.current.tabIndex = 0;
@@ -46,6 +66,17 @@ export function useGameEngine({
       box = MeshBuilder.CreateBox('player', { size: 1 }, scene);
       box.position = new Vector3(worldX, 0.5, worldZ);
     }
+
+    // Find objectives
+    const objectives: { [key: string]: Vector3 } = {};
+    Object.entries(currentLevel.positions).forEach(([pos, type]) => {
+      if (type === 'objective') {
+        const [x, y] = pos.split(',').map(Number);
+        const worldX = x - gridSize / 2 + 0.5;
+        const worldZ = y - gridSize / 2 + 0.5;
+        objectives[pos] = new Vector3(worldX, 0.5, worldZ);
+      }
+    });
 
     // Find end position
     let endPos: Vector3 | null = null;
@@ -85,9 +116,23 @@ export function useGameEngine({
         box.position.x += joystickMovement.x;
         box.position.z += joystickMovement.z;
 
-        // Check if reached end
-        if (endPos && Vector3.Distance(box.position, endPos) < 0.5) {
-          onLevelComplete();
+        // Check if reached objective
+        Object.entries(objectives).forEach(([objectivePos, objectiveVector]) => {
+          if (!collectedRef.current.has(objectivePos) && Vector3.Distance(box.position, objectiveVector) < 0.5) {
+            collectedRef.current.add(objectivePos);
+            onObjectiveCollectedRef.current(objectivePos);
+            // Hide the objective tile
+            if (objectiveTilesRef.current[objectivePos]) {
+              objectiveTilesRef.current[objectivePos].tile.isVisible = false;
+            }
+          }
+        });
+
+        // Check if reached end (only if all objectives are collected)
+        if (endPos && collectedRef.current.size === Object.keys(objectives).length) {
+          if (Vector3.Distance(box.position, endPos) < 0.5) {
+            onLevelCompleteRef.current();
+          }
         }
       }
       scene.render();
@@ -96,5 +141,5 @@ export function useGameEngine({
     return () => {
       engine.dispose();
     };
-  }, [enabled, canvasRef, currentLevel, joystickMovement, onLevelComplete]);
+  }, [enabled, canvasRef, currentLevel, joystickMovement]);
 }
