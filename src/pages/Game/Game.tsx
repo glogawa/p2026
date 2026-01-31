@@ -4,8 +4,10 @@ import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
 import { WinScreen, StartScreen, LevelLoader, FpsCounter, LoseScreen } from './ui';
+import { LoadCustomGameModal } from './components';
 import PageHeader from '../../components/PageHeader';
 import { generateRandomLevels } from './utils/generateRandomLevel';
+import gamebg from '/gamebg.jpeg';
 import './Game.css';
 
 interface Level {
@@ -42,6 +44,7 @@ const Game: React.FC = () => {
   const [npcStats, setNPCStats] = useState<NPCStats | undefined>(undefined);
   const [fps, setFps] = useState<number>(0);
   const [showNPCGui, setShowNPCGui] = useState<boolean>(true);
+  const [showLoadModal, setShowLoadModal] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -200,9 +203,9 @@ const Game: React.FC = () => {
         <PageHeader title="Game">
           <IonButton onClick={() => gameState.endGame()}>Leave Game</IonButton>
         </PageHeader>
-        <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0 }}>
-          <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+        <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0, display: 'block' }}>
+          <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative', display: 'block' }}>
+            <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
             {/* <FpsCounter fps={fps} /> */}
             <div style={{
               position: 'absolute',
@@ -254,6 +257,7 @@ const Game: React.FC = () => {
 
   return (
     <IonPage>
+      {!gameStarted && <div className="game-page-background" style={{ backgroundImage: `url(${gamebg})` }}></div>}
       <PageHeader title="Game" />
       <IonContent fullscreen>
         <IonHeader collapse="condense">
@@ -264,15 +268,22 @@ const Game: React.FC = () => {
         {gameWon && <WinScreen onPlayAgain={handlePlayAgain} />}
         {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} />}
         {!gameWon && !gameLost && (
-          <LevelLoader
-            pastedJson={pastedJson}
-            onJsonChange={setPastedJson}
-            onLoadLevels={loadLevels}
-            loadedLevels={loadedLevels}
-          />
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonButton className="glass-button" onClick={() => setShowLoadModal(true)} expand="block" style={{ marginBottom: '20px' }}>
+              Load Custom Game
+            </IonButton>
+            <StartScreen onStartGame={handleStartGame} />
+          </div>
         )}
-        {!gameWon && !gameLost && <StartScreen onStartGame={handleStartGame} />}
       </IonContent>
+      <LoadCustomGameModal
+        isOpen={showLoadModal}
+        pastedJson={pastedJson}
+        onJsonChange={setPastedJson}
+        onLoadLevels={loadLevels}
+        onClose={() => setShowLoadModal(false)}
+        loadedLevels={loadedLevels}
+      />
     </IonPage>
   );
 };
