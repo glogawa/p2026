@@ -8,6 +8,13 @@ interface UseGameJoystickOptions {
   enabled?: boolean;
 }
 
+// Detect if device is mobile
+function isMobileDevice(): boolean {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+}
+
 export function useGameJoystick({
   isGameActive,
   containerRef,
@@ -19,7 +26,8 @@ export function useGameJoystick({
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isGameActive || !enabled || !containerRef.current) return;
+    // Only create joystick on mobile devices
+    if (!isMobileDevice() || !isGameActive || !enabled || !containerRef.current) return;
 
     // Create joystick
     const manager = nipplejs.create({
