@@ -52,6 +52,7 @@ const Game: React.FC = () => {
   const [alertTimer, setAlertTimer] = useState<number>(10);
   const [maskActive, setMaskActive] = useState<boolean>(false);
   const [maskDestroying, setMaskDestroying] = useState<boolean>(false);
+  const [loseReason, setLoseReason] = useState<'thief' | 'recognized'>('thief');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -126,7 +127,8 @@ const Game: React.FC = () => {
         if (alertStateRef.current.phase === 'high') {
           // High alert time is up
           if (!maskActive) {
-            // No mask - game over
+            // No mask - game over (recognized and beaten)
+            setLoseReason('recognized');
             loseGame();
             return;
           } else {
@@ -250,6 +252,14 @@ const Game: React.FC = () => {
   };
 
   const handlePlayAgain = () => {
+    // Reset game states
+    setLoseReason('thief');
+    setMaskActive(false);
+    setMaskDestroying(false);
+    setAlertPhase('low');
+    setAlertTimer(20);
+    alertStateRef.current = { phase: 'low', timer: 20 };
+    
     if (gameMode === 'story') {
       setFenceConfig({
         staggerDuration: storyModeData.general.fenceStaggerDurationMs,
@@ -420,7 +430,7 @@ const Game: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         {gameWon && <WinScreen onPlayAgain={handlePlayAgain} />}
-        {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} />}
+        {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} loseReason={loseReason} />}
         {!gameWon && !gameLost && gameMode === 'selection' && (
           <GameModeScreen
             onStoryMode={() => setGameMode('story')}
