@@ -4,7 +4,7 @@ import { createObjective } from './objective';
 import { createStart } from './start';
 import { createExit } from './exit';
 
-export function createGround(
+export async function createGround(
   scene: Scene,
   gridSize: number,
   positions: { [key: string]: 'start' | 'end' | 'objective' | null },
@@ -22,7 +22,7 @@ export function createGround(
     const exitMeshes: any[] = [];
 
     // Create 3D models for positions
-    Object.entries(positions).forEach(([pos, type]) => {
+    for (const [pos, type] of Object.entries(positions)) {
         if (type) {
             const [x, y] = pos.split(',').map(Number);
             const worldX = x - gridSize / 2 + 0.5;
@@ -34,7 +34,7 @@ export function createGround(
             
             switch (type) {
                 case 'start':
-                    const startMesh = createStart(scene, position);
+                    const startMesh = await createStart(scene, position);
                     startMeshes.push(startMesh);
                     break;
                 case 'end':
@@ -50,7 +50,7 @@ export function createGround(
                     break;
             }
         }
-    });
+    }
 
     return { objectiveTiles, groundPlane: plane, groundMaterial: gridMaterial, startMeshes, exitMeshes };
 }

@@ -83,170 +83,171 @@ export function useGameEngine({
   useEffect(() => {
     if (!enabled || !canvasRef.current || !currentLevel) return;
 
-    const engine = new Engine(canvasRef.current, true);
-    engine.enableOfflineSupport = false;
-    
-    const scene = new Scene(engine);
-    const camera = createCamera(scene, canvasRef.current);
-    cameraRef.current = camera;
-    createLight(scene);
-    const gridSize = currentLevel.gridSize;
-    const { objectiveTiles, groundPlane, groundMaterial, startMeshes, exitMeshes } = createGround(scene, gridSize, currentLevel.positions, collectedRef.current);
-    objectiveTilesRef.current = objectiveTiles;
-    groundPlaneRef.current = groundPlane;
-    groundMaterialRef.current = groundMaterial;
-    startMeshesRef.current = startMeshes;
-    exitMeshesRef.current = exitMeshes;
+    const setupScene = async () => {
+      const engine = new Engine(canvasRef.current!, true);
+      engine.enableOfflineSupport = false;
+      
+      const scene = new Scene(engine);
+      const camera = createCamera(scene, canvasRef.current!);
+      cameraRef.current = camera;
+      createLight(scene);
+      const gridSize = currentLevel.gridSize;
+      const { objectiveTiles, groundPlane, groundMaterial, startMeshes, exitMeshes } = await createGround(scene, gridSize, currentLevel.positions, collectedRef.current);
+      objectiveTilesRef.current = objectiveTiles;
+      groundPlaneRef.current = groundPlane;
+      groundMaterialRef.current = groundMaterial;
+      startMeshesRef.current = startMeshes;
+      exitMeshesRef.current = exitMeshes;
 
-    // Focus canvas
-    canvasRef.current.tabIndex = 0;
-    canvasRef.current.focus();
+      // Focus canvas
+      canvasRef.current!.tabIndex = 0;
+      canvasRef.current!.focus();
 
-    // Create player box
-    let box: any = null;
-    const startEntry = Object.entries(currentLevel.positions).find(
-      ([_, type]) => type === 'start'
-    );
-    if (startEntry) {
-      const [pos] = startEntry as [string, string];
-      const [x, y] = pos.split(',').map(Number);
-      const worldX = x - gridSize / 2 + 0.5;
-      const worldZ = y - gridSize / 2 + 0.5;
-      box = MeshBuilder.CreateBox('player', { size: 1 }, scene);
-      box.position = new Vector3(worldX, 0.5, worldZ);
-      const playerMaterial = new StandardMaterial('playerMaterial', scene);
-      playerMaterial.diffuseColor = new Color3(0.2, 0.5, 1); // Blue
-      playerMaterial.specularColor = new Color3(0.2, 0.2, 0.2);
-      box.material = playerMaterial;
-      box.playerMaterial = playerMaterial;
-      playerBoxRef.current = box;
-      // Set camera to follow the player
-      if (cameraRef.current) {
-        cameraRef.current.lockedTarget = box;
-      }
-    }
-
-    // Find objectives
-    const objectives: { [key: string]: Vector3 } = {};
-    Object.entries(currentLevel.positions).forEach(([pos, type]) => {
-      if (type === 'objective') {
+      // Create player box
+      let box: any = null;
+      const startEntry = Object.entries(currentLevel.positions).find(
+        ([_, type]) => type === 'start'
+      );
+      if (startEntry) {
+        const [pos] = startEntry as [string, string];
         const [x, y] = pos.split(',').map(Number);
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
-        objectives[pos] = new Vector3(worldX, 0.5, worldZ);
+        box = MeshBuilder.CreateBox('player', { size: 1 }, scene);
+        box.position = new Vector3(worldX, 0.5, worldZ);
+        const playerMaterial = new StandardMaterial('playerMaterial', scene);
+        playerMaterial.diffuseColor = new Color3(0.2, 0.5, 1); // Blue
+        playerMaterial.specularColor = new Color3(0.2, 0.2, 0.2);
+        box.material = playerMaterial;
+        box.playerMaterial = playerMaterial;
+        playerBoxRef.current = box;
+        // Set camera to follow the player
+        if (cameraRef.current) {
+          cameraRef.current.lockedTarget = box;
+        }
       }
-    });
 
-    // Find end position
-    let endPos: Vector3 | null = null;
-    const endEntry = Object.entries(currentLevel.positions).find(
-      ([_, type]) => type === 'end'
-    );
-    if (endEntry) {
-      const [pos] = endEntry as [string, string];
-      const [x, y] = pos.split(',').map(Number);
-      const worldX = x - gridSize / 2 + 0.5;
-      const worldZ = y - gridSize / 2 + 0.5;
-      endPos = new Vector3(worldX, 0.5, worldZ);
-    }
+      // Find objectives
+      const objectives: { [key: string]: Vector3 } = {};
+      Object.entries(currentLevel.positions).forEach(([pos, type]) => {
+        if (type === 'objective') {
+          const [x, y] = pos.split(',').map(Number);
+          const worldX = x - gridSize / 2 + 0.5;
+          const worldZ = y - gridSize / 2 + 0.5;
+          objectives[pos] = new Vector3(worldX, 0.5, worldZ);
+        }
+      });
 
-    // Create fences
-    const fences: Vector3[] = [];
-    Object.entries(currentLevel.positions).forEach(([pos, type]) => {
-      if (type === 'fence') {
+      // Find end position
+      let endPos: Vector3 | null = null;
+      const endEntry = Object.entries(currentLevel.positions).find(
+        ([_, type]) => type === 'end'
+      );
+      if (endEntry) {
+        const [pos] = endEntry as [string, string];
         const [x, y] = pos.split(',').map(Number);
         const worldX = x - gridSize / 2 + 0.5;
         const worldZ = y - gridSize / 2 + 0.5;
-        const fenceMesh = createFence(scene, new Vector3(worldX, 0.5, worldZ), fenceConfig);
-        fenceMeshesRef.current[pos] = fenceMesh;
-        fences.push(new Vector3(worldX, 0.5, worldZ));
+        endPos = new Vector3(worldX, 0.5, worldZ);
       }
-    });
 
-    // Create NPCs
-    const now = performance.now();
-    // Create GUI texture for NPC labels
-    const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("NPCLabelsUI");
-    guiTextureRef.current = guiTexture;
-    
-    Object.entries(currentLevel.positions).forEach(([pos, type]) => {
-      if (type === 'npc') {
-        const [x, y] = pos.split(',').map(Number);
-        const worldX = x - gridSize / 2 + 0.5;
-        const worldZ = y - gridSize / 2 + 0.5;
-        const npcMesh = createNPC(scene, new Vector3(worldX, 0.5, worldZ));
-        
-        let npcStats_data = { stamina: 3, agility: 5 };
-        if (npcStats) {
-          npcStats_data = generateNPCStats(npcStats);
+      // Create fences
+      const fences: Vector3[] = [];
+      Object.entries(currentLevel.positions).forEach(([pos, type]) => {
+        if (type === 'fence') {
+          const [x, y] = pos.split(',').map(Number);
+          const worldX = x - gridSize / 2 + 0.5;
+          const worldZ = y - gridSize / 2 + 0.5;
+          const fenceMesh = createFence(scene, new Vector3(worldX, 0.5, worldZ), fenceConfig);
+          fenceMeshesRef.current[pos] = fenceMesh;
+          fences.push(new Vector3(worldX, 0.5, worldZ));
         }
-        
-        const npcInstance: NPCInstance = {
-          mesh: npcMesh,
-          position: new Vector3(worldX, 0.5, worldZ),
-          state: 'thinking',
-          stateStartTime: 0, // Set to 0 so it immediately starts changing state
-          stamina: npcStats_data.stamina,
-          agility: npcStats_data.agility,
-        };
-        npcsRef.current.push(npcInstance);
-        
-        // Attach GUI label to NPC (and set initial visibility)
-        attachNPCGUI(npcInstance, scene, guiTexture);
-        if (npcInstance.guiRect) {
-          npcInstance.guiRect.isVisible = showNPCGui;
-        }
-        if (npcInstance.guiLine) {
-          npcInstance.guiLine.isVisible = showNPCGui;
-        }
-      }
-    });
+      });
 
-    // Keyboard input
-    const inputMap: { [key: string]: boolean } = {};
-    scene.onKeyboardObservable.add((kbInfo) => {
-      switch (kbInfo.type) {
-        case KeyboardEventTypes.KEYDOWN:
-          inputMap[kbInfo.event.key.toLowerCase()] = true;
-          break;
-        case KeyboardEventTypes.KEYUP:
-          inputMap[kbInfo.event.key.toLowerCase()] = false;
-          break;
-      }
-    });
-
-    // Render loop
-    engine.runRenderLoop(() => {
-      if (box) {
-        const currentTime = performance.now();
-        const deltaTime = Math.min(currentTime - lastFrameTimeRef.current, 50); // Cap at 50ms to prevent large jumps
-        lastFrameTimeRef.current = currentTime;
-
-        const isStaggered = staggerStateRef.current.isStaggered && currentTime < staggerStateRef.current.staggerEndTime;
-
-        // Clear stagger state if time has expired
-        if (staggerStateRef.current.isStaggered && currentTime >= staggerStateRef.current.staggerEndTime) {
-          staggerStateRef.current.isStaggered = false;
-        }
-
-        // Only allow movement if not staggered
-        if (!isStaggered) {
-          const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
-          // Keyboard movement
-          if (inputMap['w']) {
-            box.position.x -= Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
-            box.position.z -= Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+      // Create NPCs
+      const now = performance.now();
+      // Create GUI texture for NPC labels
+      const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("NPCLabelsUI");
+      guiTextureRef.current = guiTexture;
+      
+      Object.entries(currentLevel.positions).forEach(([pos, type]) => {
+        if (type === 'npc') {
+          const [x, y] = pos.split(',').map(Number);
+          const worldX = x - gridSize / 2 + 0.5;
+          const worldZ = y - gridSize / 2 + 0.5;
+          const npcMesh = createNPC(scene, new Vector3(worldX, 0.5, worldZ));
+          
+          let npcStats_data = { stamina: 3, agility: 5 };
+          if (npcStats) {
+            npcStats_data = generateNPCStats(npcStats);
           }
-          if (inputMap['s']) {
-            box.position.x += Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
-            box.position.z += Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+          
+          const npcInstance: NPCInstance = {
+            mesh: npcMesh,
+            position: new Vector3(worldX, 0.5, worldZ),
+            state: 'thinking',
+            stateStartTime: 0, // Set to 0 so it immediately starts changing state
+            stamina: npcStats_data.stamina,
+            agility: npcStats_data.agility,
+          };
+          npcsRef.current.push(npcInstance);
+          
+          // Attach GUI label to NPC (and set initial visibility)
+          attachNPCGUI(npcInstance, scene, guiTexture);
+          if (npcInstance.guiRect) {
+            npcInstance.guiRect.isVisible = showNPCGui;
           }
-          if (inputMap['a']) box.rotation.y -= 0.025;
-          if (inputMap['d']) box.rotation.y += 0.025;
-          // Joystick movement
-          box.position.x += joystickMovementRef.current.x * speedMultiplier;
-          box.position.z += joystickMovementRef.current.z * speedMultiplier;
+          if (npcInstance.guiLine) {
+            npcInstance.guiLine.isVisible = showNPCGui;
+          }
         }
+      });
+
+      // Keyboard input
+      const inputMap: { [key: string]: boolean } = {};
+      scene.onKeyboardObservable.add((kbInfo) => {
+        switch (kbInfo.type) {
+          case KeyboardEventTypes.KEYDOWN:
+            inputMap[kbInfo.event.key.toLowerCase()] = true;
+            break;
+          case KeyboardEventTypes.KEYUP:
+            inputMap[kbInfo.event.key.toLowerCase()] = false;
+            break;
+        }
+      });
+
+      // Render loop
+      engine.runRenderLoop(() => {
+        if (box) {
+          const currentTime = performance.now();
+          const deltaTime = Math.min(currentTime - lastFrameTimeRef.current, 50); // Cap at 50ms to prevent large jumps
+          lastFrameTimeRef.current = currentTime;
+
+          const isStaggered = staggerStateRef.current.isStaggered && currentTime < staggerStateRef.current.staggerEndTime;
+
+          // Clear stagger state if time has expired
+          if (staggerStateRef.current.isStaggered && currentTime >= staggerStateRef.current.staggerEndTime) {
+            staggerStateRef.current.isStaggered = false;
+          }
+
+          // Only allow movement if not staggered
+          if (!isStaggered) {
+            const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
+            // Keyboard movement
+            if (inputMap['w']) {
+              box.position.x -= Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
+              box.position.z -= Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+            }
+            if (inputMap['s']) {
+              box.position.x += Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
+              box.position.z += Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+            }
+            if (inputMap['a']) box.rotation.y -= 0.025;
+            if (inputMap['d']) box.rotation.y += 0.025;
+            // Joystick movement
+            box.position.x += joystickMovementRef.current.x * speedMultiplier;
+            box.position.z += joystickMovementRef.current.z * speedMultiplier;
+          }
 
         // Check fence collisions
         fences.forEach((fencePos) => {
@@ -419,101 +420,105 @@ export function useGameEngine({
           npc.position.z = Math.max(minBound, Math.min(maxBound, npc.position.z));
           npc.mesh.position = npc.position;
         });
-      }
-      scene.render();
-    });
-
-    return () => {
-      // Stop the render loop
-      engine.stopRenderLoop();
-
-      // Dispose GUI texture
-      if (guiTextureRef.current) {
-        guiTextureRef.current.dispose();
-        guiTextureRef.current = null;
-      }
-
-      // Dispose NPC GUI elements and materials
-      npcsRef.current.forEach((npc) => {
-        if (npc.guiRect) {
-          npc.guiRect.dispose();
         }
-        if (npc.guiLine) {
-          npc.guiLine.dispose();
-        }
-        if (npc.guiTarget) {
-          npc.guiTarget.dispose();
-        }
-        if (npc.mesh && npc.mesh.npcMaterial) {
-          npc.mesh.npcMaterial.dispose();
-        }
-        // Mesh is disposed with scene
+        scene.render();
       });
 
-      // Dispose fence meshes and materials
-      Object.values(fenceMeshesRef.current).forEach((fenceMesh) => {
-        if (fenceMesh && typeof fenceMesh !== 'boolean') {
-          if (fenceMesh.fenceMaterial) {
-            fenceMesh.fenceMaterial.dispose();
+      return () => {
+        // Stop the render loop
+        engine.stopRenderLoop();
+
+        // Dispose GUI texture
+        if (guiTextureRef.current) {
+          guiTextureRef.current.dispose();
+          guiTextureRef.current = null;
+        }
+
+        // Dispose NPC GUI elements and materials
+        npcsRef.current.forEach((npc) => {
+          if (npc.guiRect) {
+            npc.guiRect.dispose();
           }
-          fenceMesh.dispose();
-        }
-      });
+          if (npc.guiLine) {
+            npc.guiLine.dispose();
+          }
+          if (npc.guiTarget) {
+            npc.guiTarget.dispose();
+          }
+          if (npc.mesh && npc.mesh.npcMaterial) {
+            npc.mesh.npcMaterial.dispose();
+          }
+          // Mesh is disposed with scene
+        });
 
-      // Dispose objective tile materials
-      Object.values(objectiveTilesRef.current).forEach((tileData) => {
-        if (tileData.tile && tileData.tile.objectiveMaterial) {
-          tileData.tile.objectiveMaterial.dispose();
-        }
-        if (tileData.material) {
-          tileData.material.dispose();
-        }
-        // Tile mesh is disposed with scene
-      });
+        // Dispose fence meshes and materials
+        Object.values(fenceMeshesRef.current).forEach((fenceMesh) => {
+          if (fenceMesh && typeof fenceMesh !== 'boolean') {
+            if (fenceMesh.fenceMaterial) {
+              fenceMesh.fenceMaterial.dispose();
+            }
+            fenceMesh.dispose();
+          }
+        });
 
-      // Dispose ground plane and material
-      if (groundPlaneRef.current) {
-        groundPlaneRef.current.dispose();
-      }
-      if (groundMaterialRef.current) {
-        groundMaterialRef.current.dispose();
-      }
+        // Dispose objective tile materials
+        Object.values(objectiveTilesRef.current).forEach((tileData) => {
+          if (tileData.tile && tileData.tile.objectiveMaterial) {
+            tileData.tile.objectiveMaterial.dispose();
+          }
+          if (tileData.material) {
+            tileData.material.dispose();
+          }
+          // Tile mesh is disposed with scene
+        });
 
-      // Dispose start and exit meshes and materials
-      startMeshesRef.current.forEach((mesh) => {
-        if (mesh.startMaterial) {
-          mesh.startMaterial.dispose();
+        // Dispose ground plane and material
+        if (groundPlaneRef.current) {
+          groundPlaneRef.current.dispose();
         }
-        mesh.dispose();
-      });
-      exitMeshesRef.current.forEach((mesh) => {
-        if (mesh.exitMaterial) {
-          mesh.exitMaterial.dispose();
+        if (groundMaterialRef.current) {
+          groundMaterialRef.current.dispose();
         }
-        mesh.dispose();
-      });
 
-      // Dispose player box and material
-      if (playerBoxRef.current) {
-        if (playerBoxRef.current.playerMaterial) {
-          playerBoxRef.current.playerMaterial.dispose();
+        // Dispose start and exit meshes and materials
+        startMeshesRef.current.forEach((mesh) => {
+          if (mesh.startMaterial) {
+            mesh.startMaterial.dispose();
+          }
+          mesh.dispose();
+        });
+        exitMeshesRef.current.forEach((mesh) => {
+          if (mesh.exitMaterial) {
+            mesh.exitMaterial.dispose();
+          }
+          mesh.dispose();
+        });
+
+        // Dispose player box and material
+        if (playerBoxRef.current) {
+          if (playerBoxRef.current.playerMaterial) {
+            playerBoxRef.current.playerMaterial.dispose();
+          }
+          playerBoxRef.current.dispose();
         }
-        playerBoxRef.current.dispose();
-      }
 
-      // Clear refs
-      npcsRef.current = [];
-      fenceMeshesRef.current = {};
-      objectiveTilesRef.current = {};
-      groundPlaneRef.current = null;
-      groundMaterialRef.current = null;
-      startMeshesRef.current = [];
-      exitMeshesRef.current = [];
-      playerBoxRef.current = null;
+        // Clear refs
+        npcsRef.current = [];
+        fenceMeshesRef.current = {};
+        objectiveTilesRef.current = {};
+        groundPlaneRef.current = null;
+        groundMaterialRef.current = null;
+        startMeshesRef.current = [];
+        exitMeshesRef.current = [];
+        playerBoxRef.current = null;
 
-      // Dispose scene and engine
-      scene.dispose();
-      engine.dispose();
+        // Dispose scene and engine
+        scene.dispose();
+        engine.dispose();
+      };
     };
+
+    // Call the async setup function
+    setupScene();
   }, [enabled, canvasRef, currentLevel, showNPCGui]);
 }

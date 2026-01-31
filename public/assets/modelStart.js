@@ -1,25 +1,5 @@
-export const createScene = function (engine, canvas) {
-    const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(1, 1, 1, 1);
-
-    // ================= CAMERA =================
-    const camera = new BABYLON.ArcRotateCamera(
-        "camera",
-        Math.PI / 2,
-        Math.PI / 2.2,
-        6,
-        new BABYLON.Vector3(0, 1.3, 0),
-        scene
-    );
-    camera.attachControl(canvas, true);
-
-    // ================= LIGHT =================
-    const hemiLight = new BABYLON.HemisphericLight(
-        "hemiLight",
-        new BABYLON.Vector3(0, 1, 0),
-        scene
-    );
-    hemiLight.intensity = 1.1;
+// Create door model for use in the game
+export const createDoorModel = function (scene, position = new BABYLON.Vector3(0, 0, 0)) {
 
     // ================= MATERIALS =================
     const doorMat = new BABYLON.StandardMaterial("doorMat", scene);
@@ -142,5 +122,17 @@ export const createScene = function (engine, canvas) {
     leftHinge.rotation.y = BABYLON.Tools.ToRadians(70);
     rightHinge.rotation.y = BABYLON.Tools.ToRadians(-70);
 
-    return scene;
+    // ================= POSITION START MODEL =================
+    // Create a parent node to contain the entire model
+    const startModel = new BABYLON.TransformNode("startModel", scene);
+    leftHinge.parent = startModel;
+    rightHinge.parent = startModel;
+    frameL.parent = startModel;
+    frameR.parent = startModel;
+    frameT.parent = startModel;
+
+    // Position the entire model at the provided location
+    startModel.position = position;
+
+    return startModel;
 };
