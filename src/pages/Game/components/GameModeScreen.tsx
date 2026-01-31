@@ -12,11 +12,7 @@ export function GameModeScreen({
   onSandboxMode,
 }: GameModeScreenProps) {
   return (
-    <div style={{ margin: '20px auto', maxWidth: '400px' }}>
-      <div style={{ marginBottom: '30px', textAlign: 'center' }}>
-        <h1 style={{ margin: '0 0 10px 0', color: 'white', fontSize: '28px' }}>Masked Out</h1>
-        <p style={{ margin: '0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>Select a Game Mode</p>
-      </div>
+    <div style={{ margin: '100px auto', maxWidth: '400px' }}>
 
       <IonCard className="glass-card" style={{ marginBottom: '15px', cursor: 'pointer' }} onClick={onStoryMode}>
         <IonCardContent>
