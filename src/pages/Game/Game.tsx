@@ -1,14 +1,11 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonItem, IonLabel, IonIcon } from '@ionic/react';
 import { useState, useEffect, useRef } from 'react';
-import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, KeyboardEventTypes, VirtualJoystick } from '@babylonjs/core';
-import { AdvancedDynamicTexture } from '@babylonjs/gui/2D';
+import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, KeyboardEventTypes } from '@babylonjs/core';
 import { createGround } from '../assets/ground';
 import { createCamera } from '../assets/camera';
 import { createLight } from '../assets/light';
+import { useGameJoystick } from '../../hooks/useGameJoystick';
 import './Game.css';
-import ToggleLightDark from '../../components/utils/toggleLightDark';
-import { menuOutline } from 'ionicons/icons';
-import { menuController } from '@ionic/core';
 import PageHeader from '../../components/PageHeader';
 
 interface Level {
@@ -22,9 +19,23 @@ const Game: React.FC = () => {
   const [pastedJson, setPastedJson] = useState<string>('');
   const [loadedLevels, setLoadedLevels] = useState<Level[] | null>(null);
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
+  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  const [gameWon, setGameWon] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const joystickContainerRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<any>(null);
+  const joystickMovementRef = useRef({ x: 0, z: 0 });
 
   const GRID_SIZE = 20;
+
+  // Setup joystick
+  useGameJoystick({
+    isGameActive: gameStarted,
+    containerRef: joystickContainerRef,
+    onMove: (x, z) => {
+      joystickMovementRef.current = { x, z };
+    },
+  });
 
   const loadLevels = () => {
     try {
@@ -42,15 +53,11 @@ const Game: React.FC = () => {
       const camera = createCamera(scene, canvasRef.current);
       const light = createLight(scene);
       const gridSize = currentLevel.gridSize;
-      createGround(scene, gridSize);
+      createGround(scene, gridSize, currentLevel.positions);
 
       // Ensure canvas is focusable and focused for keyboard input
       canvasRef.current.tabIndex = 0;
       canvasRef.current.focus();
-
-      // Create UI for virtual joystick
-      const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
-      const joystick = new VirtualJoystick();
 
       // Find start position
       const startEntry = Object.entries(currentLevel.positions).find(([_, type]) => type === 'start');
@@ -63,6 +70,17 @@ const Game: React.FC = () => {
         const worldZ = y - gridSize / 2 + 0.5;
         box = MeshBuilder.CreateBox("player", { size: 1 }, scene);
         box.position = new Vector3(worldX, 0.5, worldZ);
+      }
+
+      // Find end position
+      const endEntry = Object.entries(currentLevel.positions).find(([_, type]) => type === 'end');
+      let endPos: Vector3 | null = null;
+      if (endEntry) {
+        const [pos] = endEntry;
+        const [x, y] = pos.split(',').map(Number);
+        const worldX = x - gridSize / 2 + 0.5;
+        const worldZ = y - gridSize / 2 + 0.5;
+        endPos = new Vector3(worldX, 0.5, worldZ);
       }
 
       // Keyboard input
@@ -86,8 +104,19 @@ const Game: React.FC = () => {
           if (inputMap["a"]) box.position.x -= 0.1;
           if (inputMap["d"]) box.position.x += 0.1;
           // Joystick movement
-          box.position.x += joystick.deltaPosition.x * 0.1;
-          box.position.z += joystick.deltaPosition.y * 0.1;
+          box.position.x += joystickMovementRef.current.x;
+          box.position.z += joystickMovementRef.current.z;
+
+          // Check if reached end
+          if (endPos && Vector3.Distance(box.position, endPos) < 0.5) {
+            if (currentLevelIndex + 1 < loadedLevels!.length) {
+              setCurrentLevelIndex(currentLevelIndex + 1);
+              setCurrentLevel(loadedLevels![currentLevelIndex + 1]);
+            } else {
+              setGameWon(true);
+              setGameStarted(false);
+            }
+          }
         }
         scene.render();
       });
@@ -96,11 +125,13 @@ const Game: React.FC = () => {
         engine.dispose();
       };
     }
-  }, [gameStarted, currentLevel]);
+  }, [gameStarted, currentLevel, currentLevelIndex, loadedLevels]);
 
   const startGame = () => {
     if (loadedLevels && loadedLevels.length > 0) {
       setCurrentLevel(loadedLevels[0]);
+      setCurrentLevelIndex(0);
+      setGameWon(false);
     }
     setGameStarted(true);
   };
@@ -112,7 +143,9 @@ const Game: React.FC = () => {
           <IonButton onClick={() => setGameStarted(false)}>Leave Game</IonButton>
         </PageHeader>
         <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0 }}>
-          <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+          <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+          </div>
         </IonContent>
       </IonPage>
     );
@@ -127,6 +160,16 @@ const Game: React.FC = () => {
             <IonTitle size="large">Game</IonTitle>
           </IonToolbar>
         </IonHeader>
+        {gameWon && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonCard className="glass-card">
+              <IonCardContent>
+                <p>You Win!</p>
+                <IonButton className="glass-button" onClick={startGame}>Play Again</IonButton>
+              </IonCardContent>
+            </IonCard>
+          </div>
+        )}
         <IonItem>
           <IonLabel position="stacked">Paste Levels JSON</IonLabel>
           <IonTextarea
@@ -149,14 +192,16 @@ const Game: React.FC = () => {
             </IonCardContent>
           </IonCard>
         )}
-        <div style={{ margin: '20px auto', maxWidth: '400px' }}>
-          <IonCard className="glass-card">
-            <IonCardContent>
-              <p>The game is about wearing a mask to blend with crowds and find the exit. Movement is WASD.</p>
-              <IonButton className="glass-button" onClick={startGame}>Start Game</IonButton>
-            </IonCardContent>
-          </IonCard>
-        </div>
+        {!gameWon && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonCard className="glass-card">
+              <IonCardContent>
+                <p>The game is about wearing a mask to blend with crowds and find the exit. Movement is WASD.</p>
+                <IonButton className="glass-button" onClick={startGame}>Start Game</IonButton>
+              </IonCardContent>
+            </IonCard>
+          </div>
+        )}
       </IonContent>
     </IonPage>
   );
