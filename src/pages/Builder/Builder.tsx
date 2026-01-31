@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonInput, IonLabel, IonItem, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonIcon, IonGrid, IonRow, IonCol, IonCardHeader, IonCardTitle } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import { clipboardOutline } from 'ionicons/icons';
@@ -7,13 +7,17 @@ import ToggleLightDark from '../../components/utils/toggleLightDark';
 interface Level {
   id: number;
   gridSize: number;
+  positions: { [key: string]: 'start' | 'end' | 'objective' | null };
 }
 
 const Builder: React.FC = () => {
   const [numLevels, setNumLevels] = useState<number>(1);
-  const [levels, setLevels] = useState<Level[]>([{ id: 1, gridSize: 20 }]);
+  const [levels, setLevels] = useState<Level[]>([{ id: 1, gridSize: 20, positions: {} }]);
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const history = useHistory();
+  const [selected, setSelected] = useState<{ levelId: number; pos: string } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const handleNumLevelsChange = (value: string) => {
     const num = parseInt(value, 10) || 1;
@@ -21,6 +25,7 @@ const Builder: React.FC = () => {
     const newLevels = Array.from({ length: num }, (_, i) => ({
       id: i + 1,
       gridSize: levels[i]?.gridSize || 20,
+      positions: levels[i]?.positions || {},
     }));
     setLevels(newLevels);
   };
@@ -30,8 +35,20 @@ const Builder: React.FC = () => {
     setLevels(levels.map(level => level.id === id ? { ...level, gridSize: size } : level));
   };
 
+  const setPositionType = (levelId: number, pos: string, type: 'start' | 'end' | 'objective' | null) => {
+    setLevels(levels.map(level => 
+      level.id === levelId 
+        ? { ...level, positions: { ...level.positions, [pos]: type } }
+        : level
+    ));
+  };
+
   const saveDesign = () => {
-    const code = `const levels = ${JSON.stringify(levels, null, 2)};`;
+    const cleanedLevels = levels.map(level => ({
+      ...level,
+      positions: Object.fromEntries(Object.entries(level.positions).filter(([_, v]) => v !== null))
+    }));
+    const code = `const levels = ${JSON.stringify(cleanedLevels, null, 2)};`;
     setGeneratedCode(code);
   };
 
@@ -89,12 +106,47 @@ const Builder: React.FC = () => {
                             max="100"
                           />
                         </IonItem>
-                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: '300px', height: '300px', margin: '10px auto', backgroundColor: 'var(--glass-background)', padding: '5px' }}>
-                          {Array.from({ length: displaySize * displaySize }, (_, i) => (
-                            <div key={i} style={{ backgroundColor: '#666', border: '1px solid var(--glass-border)' }}></div>
-                          ))}
+                        <div ref={gridRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: '300px', height: '300px', margin: '10px auto', backgroundColor: 'var(--glass-background)', padding: '5px', position: 'relative' }}>
+                          {Array.from({ length: displaySize * displaySize }, (_, i) => {
+                            const x = i % displaySize;
+                            const y = Math.floor(i / displaySize);
+                            const pos = `${x},${y}`;
+                            const type = level.positions[pos];
+                            let bgColor = 'transparent';
+                            if (type === 'start') bgColor = 'rgba(255,0,0,0.5)';
+                            else if (type === 'objective') bgColor = 'rgba(0,255,0,0.5)';
+                            else if (type === 'end') bgColor = 'rgba(0,0,255,0.5)';
+                            return (
+                              <div 
+                                key={i} 
+                                style={{ backgroundColor: bgColor, border: '1px solid rgba(0,0,0,0.5)', cursor: 'pointer' }}
+                                onClick={(e) => {
+                                  setSelected({ levelId: level.id, pos });
+                                  if (gridRef.current) {
+                                    const cellSize = 300 / displaySize;
+                                    const menuX = x * cellSize + 5;
+                                    const menuY = (y + 1) * cellSize + 5;
+                                    setMenuPos({ x: menuX, y: menuY });
+                                  }
+                                }}
+                              ></div>
+                            );
+                          })}
+                          {selected && selected.levelId === level.id && menuPos && (
+                            <>
+                              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'transparent', zIndex: 5 }} onClick={() => { setSelected(null); setMenuPos(null); }}></div>
+                              <div style={{ position: 'absolute', left: menuPos.x, top: menuPos.y, backgroundColor: 'var(--glass-background)', border: '1px solid var(--glass-border)', padding: '5px', zIndex: 10, borderRadius: '5px' }} onClick={(e) => e.stopPropagation()}>
+                                <div style={{ fontSize: '12px', marginBottom: '5px', color: 'var(--ion-text-color)' }}>Position: {selected.pos}</div>
+                                <IonButtons style={{ flexDirection: 'column' }}>
+                                  <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'start'); setSelected(null); setMenuPos(null); }}>Start</IonButton>
+                                  <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'objective'); setSelected(null); setMenuPos(null); }}>Objective</IonButton>
+                                  <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'end'); setSelected(null); setMenuPos(null); }}>End</IonButton>
+                                  <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, null); setSelected(null); setMenuPos(null); }}>Clear</IonButton>
+                                </IonButtons>
+                              </div>
+                            </>
+                          )}
                         </div>
-                        {level.gridSize > 20 && <p style={{ textAlign: 'center', fontSize: '12px', color: 'gray' }}>Preview limited to 20x20</p>}
                       </div>
                     );
                   })}
