@@ -4,9 +4,10 @@ import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
 import { WinScreen, StartScreen, LevelLoader, FpsCounter, LoseScreen } from './ui';
-import { LoadCustomGameModal } from './components';
+import { LoadCustomGameModal, GameModeScreen } from './components';
 import PageHeader from '../../components/PageHeader';
 import { generateRandomLevels } from './utils/generateRandomLevel';
+import { storyModeData } from './data/storyMode';
 import gamebg from '/gamebg.jpeg';
 import './Game.css';
 
@@ -45,6 +46,7 @@ const Game: React.FC = () => {
   const [fps, setFps] = useState<number>(0);
   const [showNPCGui, setShowNPCGui] = useState<boolean>(true);
   const [showLoadModal, setShowLoadModal] = useState<boolean>(false);
+  const [gameMode, setGameMode] = useState<'selection' | 'story' | 'custom' | 'sandbox'>('selection');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -164,10 +166,18 @@ const Game: React.FC = () => {
   };
 
   const handleStartGame = () => {
-    if (loadedLevels && loadedLevels.length > 0) {
+    if (gameMode === 'story') {
+      setFenceConfig({
+        staggerDuration: storyModeData.general.fenceStaggerDurationMs,
+        bounceDistance: storyModeData.general.fenceBounceDistance,
+      });
+      setPlayerStats(storyModeData.general.playerStats);
+      setNPCStats(storyModeData.general.npcStats);
+      setLoadedLevels(storyModeData.locations);
+      startGame(storyModeData.locations);
+    } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
-    } else {
-      // Generate random levels if none are loaded
+    } else if (gameMode === 'sandbox') {
       const randomData = generateRandomLevels();
       setFenceConfig({
         staggerDuration: randomData.general.fenceStaggerDurationMs,
@@ -181,10 +191,18 @@ const Game: React.FC = () => {
   };
 
   const handlePlayAgain = () => {
-    if (loadedLevels && loadedLevels.length > 0) {
+    if (gameMode === 'story') {
+      setFenceConfig({
+        staggerDuration: storyModeData.general.fenceStaggerDurationMs,
+        bounceDistance: storyModeData.general.fenceBounceDistance,
+      });
+      setPlayerStats(storyModeData.general.playerStats);
+      setNPCStats(storyModeData.general.npcStats);
+      setLoadedLevels(storyModeData.locations);
+      startGame(storyModeData.locations);
+    } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
-    } else {
-      // Generate random levels if none are loaded
+    } else if (gameMode === 'sandbox') {
       const randomData = generateRandomLevels();
       setFenceConfig({
         staggerDuration: randomData.general.fenceStaggerDurationMs,
@@ -267,7 +285,35 @@ const Game: React.FC = () => {
         </IonHeader>
         {gameWon && <WinScreen onPlayAgain={handlePlayAgain} />}
         {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} />}
-        {!gameWon && !gameLost && (
+        {!gameWon && !gameLost && gameMode === 'selection' && (
+          <GameModeScreen
+            onStoryMode={() => setGameMode('story')}
+            onCustomMode={() => setGameMode('custom')}
+            onSandboxMode={() => setGameMode('sandbox')}
+          />
+        )}
+        {!gameWon && !gameLost && gameMode === 'story' && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+              <IonCardContent>
+                <p style={{ margin: '0 0 10px 0' }}><strong>Story Mode</strong></p>
+                <p style={{ margin: '0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Follow the narrative with carefully crafted levels
+                </p>
+                <IonButton
+                  className="glass-button"
+                  onClick={() => setGameMode('selection')}
+                  expand="block"
+                  style={{ marginTop: '15px' }}
+                >
+                  Back
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+            <StartScreen onStartGame={handleStartGame} />
+          </div>
+        )}
+        {!gameWon && !gameLost && gameMode === 'custom' && (
           <div style={{ margin: '20px auto', maxWidth: '400px' }}>
             <IonButton className="glass-button" onClick={() => setShowLoadModal(true)} expand="block" style={{ marginBottom: '20px' }}>
               Load Custom Game
@@ -284,6 +330,35 @@ const Game: React.FC = () => {
                 </IonCardContent>
               </IonCard>
             )}
+            <StartScreen onStartGame={handleStartGame} />
+            <IonButton
+              className="glass-button"
+              onClick={() => setGameMode('selection')}
+              expand="block"
+              style={{ marginTop: '15px' }}
+            >
+              Back
+            </IonButton>
+          </div>
+        )}
+        {!gameWon && !gameLost && gameMode === 'sandbox' && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+              <IonCardContent>
+                <p style={{ margin: '0 0 10px 0' }}><strong>Sandbox Mode</strong></p>
+                <p style={{ margin: '0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Generate random levels for endless fun
+                </p>
+                <IonButton
+                  className="glass-button"
+                  onClick={() => setGameMode('selection')}
+                  expand="block"
+                  style={{ marginTop: '15px' }}
+                >
+                  Back
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
             <StartScreen onStartGame={handleStartGame} />
           </div>
         )}
