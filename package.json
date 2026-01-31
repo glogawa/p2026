@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "^8.49.5",
-    "@babylonjs/gui": "^8.49.5",
+    "@babylonjs/gui": "^8.49.6",
     "@babylonjs/materials": "^8.49.5",
     "@capacitor/app": "8.0.0",
     "@capacitor/core": "8.0.2",
