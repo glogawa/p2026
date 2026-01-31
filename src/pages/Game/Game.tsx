@@ -14,10 +14,23 @@ interface Level {
   positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
 }
 
+interface PlayerStats {
+  stamina: number;
+  agility: number;
+}
+
+interface NPCStats {
+  stamina: number;
+  staminaVariance: number;
+  agility: { min: number; max: number };
+}
+
 interface LevelData {
   general: {
     fenceStaggerDurationMs: number;
     fenceBounceDistance: number;
+    playerStats?: PlayerStats;
+    npcStats?: NPCStats;
   };
   locations: Level[];
 }
@@ -25,6 +38,8 @@ interface LevelData {
 const Game: React.FC = () => {
   const [pastedJson, setPastedJson] = useState<string>('');
   const [fenceConfig, setFenceConfig] = useState({ staggerDuration: 500, bounceDistance: 0.2 });
+  const [playerStats, setPlayerStats] = useState<PlayerStats | undefined>(undefined);
+  const [npcStats, setNPCStats] = useState<NPCStats | undefined>(undefined);
   const [fps, setFps] = useState<number>(0);
   const [showNPCGui, setShowNPCGui] = useState<boolean>(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,7 +125,11 @@ const Game: React.FC = () => {
     enabled: gameStarted,
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
     showNPCGui,
+    npcStats,
+    playerStats,
   });
+
+  const totalObjectives = currentLevel ? Object.values(currentLevel.positions).filter(pos => pos === 'objective').length : 0;
 
   const loadLevels = () => {
     try {
@@ -123,6 +142,12 @@ const Game: React.FC = () => {
           staggerDuration: data.general.fenceStaggerDurationMs,
           bounceDistance: data.general.fenceBounceDistance,
         });
+        if (data.general.playerStats) {
+          setPlayerStats(data.general.playerStats);
+        }
+        if (data.general.npcStats) {
+          setNPCStats(data.general.npcStats);
+        }
         setLoadedLevels(data.locations);
       }
     } catch (e) {
@@ -135,9 +160,15 @@ const Game: React.FC = () => {
       startGame(loadedLevels);
     } else {
       // Generate random levels if none are loaded
-      const randomLevels = generateRandomLevels();
-      setLoadedLevels(randomLevels);
-      startGame(randomLevels);
+      const randomData = generateRandomLevels();
+      setFenceConfig({
+        staggerDuration: randomData.general.fenceStaggerDurationMs,
+        bounceDistance: randomData.general.fenceBounceDistance,
+      });
+      setPlayerStats(randomData.general.playerStats);
+      setNPCStats(randomData.general.npcStats);
+      setLoadedLevels(randomData.locations);
+      startGame(randomData.locations);
     }
   };
 
@@ -146,9 +177,15 @@ const Game: React.FC = () => {
       startGame(loadedLevels);
     } else {
       // Generate random levels if none are loaded
-      const randomLevels = generateRandomLevels();
-      setLoadedLevels(randomLevels);
-      startGame(randomLevels);
+      const randomData = generateRandomLevels();
+      setFenceConfig({
+        staggerDuration: randomData.general.fenceStaggerDurationMs,
+        bounceDistance: randomData.general.fenceBounceDistance,
+      });
+      setPlayerStats(randomData.general.playerStats);
+      setNPCStats(randomData.general.npcStats);
+      setLoadedLevels(randomData.locations);
+      startGame(randomData.locations);
     }
   };
 
@@ -162,6 +199,22 @@ const Game: React.FC = () => {
           <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
             {/* <FpsCounter fps={fps} /> */}
+            <div style={{
+              position: 'absolute',
+              top: '10px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '10px 20px',
+              color: 'white',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              zIndex: 1000
+            }}>
+              {collectedObjectives.size} / {totalObjectives}
+            </div>
             <button 
               onClick={() => setShowNPCGui(!showNPCGui)}
               style={{

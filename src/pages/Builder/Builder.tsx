@@ -9,15 +9,37 @@ interface Level {
     positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
 }
 
+interface PlayerStats {
+    stamina: number;
+    agility: number;
+}
+
+interface NPCStats {
+    stamina: number;
+    staminaVariance: number;
+    agility: { min: number; max: number };
+}
+
 interface GeneralSettings {
     fenceStaggerDurationMs: number;
     fenceBounceDistance: number;
+    playerStats: PlayerStats;
+    npcStats: NPCStats;
 }
 
 const defaultGridSize = 10;
 const defaultGeneralSettings: GeneralSettings = {
     fenceStaggerDurationMs: 500,
     fenceBounceDistance: 0.2,
+    playerStats: {
+        stamina: 10,
+        agility: 5,
+    },
+    npcStats: {
+        stamina: 3,
+        staminaVariance: 1,
+        agility: { min: 0, max: 10 },
+    },
 };
 
 const Builder: React.FC = () => {
@@ -155,6 +177,72 @@ const Builder: React.FC = () => {
                                                 min="0.1"
                                                 max="2"
                                                 step="0.1"
+                                            />
+                                        </IonItem>
+                                    </div>
+                                    <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '5px' }}>
+                                        <h4 style={{ margin: '0 0 15px 0', color: 'var(--ion-text-color)' }}>Player Stats</h4>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Stamina</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.playerStats.stamina}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, playerStats: { ...generalSettings.playerStats, stamina: parseInt(e.detail.value!) || 10 } })}
+                                                min="1"
+                                                max="50"
+                                            />
+                                        </IonItem>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Agility</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.playerStats.agility}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, playerStats: { ...generalSettings.playerStats, agility: parseInt(e.detail.value!) || 5 } })}
+                                                min="1"
+                                                max="20"
+                                            />
+                                        </IonItem>
+                                    </div>
+                                    <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '5px' }}>
+                                        <h4 style={{ margin: '0 0 15px 0', color: 'var(--ion-text-color)' }}>NPC Stats</h4>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Base Stamina</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.npcStats.stamina}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, npcStats: { ...generalSettings.npcStats, stamina: parseInt(e.detail.value!) || 3 } })}
+                                                min="1"
+                                                max="50"
+                                            />
+                                        </IonItem>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Stamina Variance (±)</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.npcStats.staminaVariance}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, npcStats: { ...generalSettings.npcStats, staminaVariance: parseInt(e.detail.value!) || 1 } })}
+                                                min="0"
+                                                max="10"
+                                            />
+                                        </IonItem>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Agility Min</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.npcStats.agility.min}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, npcStats: { ...generalSettings.npcStats, agility: { ...generalSettings.npcStats.agility, min: parseInt(e.detail.value!) || 0 } } })}
+                                                min="0"
+                                                max="20"
+                                            />
+                                        </IonItem>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Agility Max</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.npcStats.agility.max}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, npcStats: { ...generalSettings.npcStats, agility: { ...generalSettings.npcStats.agility, max: parseInt(e.detail.value!) || 10 } } })}
+                                                min="0"
+                                                max="20"
                                             />
                                         </IonItem>
                                     </div>
