@@ -49,7 +49,7 @@ const Builder: React.FC = () => {
             ...level,
             positions: Object.fromEntries(Object.entries(level.positions).filter(([_, v]) => v !== null))
         }));
-        const code = `const levels = ${JSON.stringify(cleanedLevels, null, 2)};`;
+        const code = JSON.stringify(cleanedLevels, null, 2);
         setGeneratedCode(code);
     };
 
@@ -176,7 +176,7 @@ const Builder: React.FC = () => {
                                             value={generatedCode}
                                             readonly
                                             rows={10}
-                                            placeholder="Copy this code to use in Game.tsx"
+                                            placeholder="Copy this JSON to use in Game.tsx"
                                         />
                                     </IonCardContent>
                                 </IonCard>
