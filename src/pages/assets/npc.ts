@@ -22,7 +22,7 @@ export const defaultNPCConfig: NPCConfig = {
   panicSpeedPerMs: 0.001, // 1.0 units per second (panic is only slightly faster)
 };
 
-export type NPCState = 'thinking' | 'socializing' | 'wandering' | 'staggered' | 'panic';
+export type NPCState = 'thinking' | 'socializing' | 'wandering' | 'staggered' | 'panic' | 'escaping';
 
 export interface NPCInstance {
   mesh: any;
@@ -40,6 +40,8 @@ export interface NPCInstance {
   guiLine?: Line;
   stamina?: number;
   agility?: number;
+  isThief?: boolean;
+  stolenObjective?: string; // Position of the stolen objective (e.g., "5,3")
 }
 
 export function createNPC(scene: Scene, position: Vector3, scale: number = 1): TransformNode {
@@ -55,12 +57,13 @@ export function createNPC(scene: Scene, position: Vector3, scale: number = 1): T
 export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: AdvancedDynamicTexture): void {
   // Create a rectangle to display the state
   const stateRect = new Rectangle();
-  const borderColor = "#ffffff55";
+  // Use red border for thieves, white for regular NPCs
+  const borderColor = npc.isThief ? "#ff0000aa" : "#ffffff55";
   stateRect.width = 0.15;
   stateRect.height = '30px';
   stateRect.cornerRadius = 10;
   stateRect.color = borderColor;
-  stateRect.thickness = 1;
+  stateRect.thickness = 2;
   stateRect.background = 'rgba(0, 0, 0, 0.7)';
   textureRef.addControl(stateRect);
   stateRect.linkWithMesh(npc.mesh);
@@ -112,6 +115,9 @@ export function updateNPCGUILabel(npc: NPCInstance, newState: NPCState): void {
         break;
       case 'panic':
         npc.guiLabel.color = 'darkorange';
+        break;
+      case 'escaping':
+        npc.guiLabel.color = 'purple';
         break;
     }
   }
@@ -238,7 +244,8 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     socializing: 0.3,
     wandering: 0.6,
     staggered: 0.1,
-    panic: 0.5
+    panic: 0.5,
+    escaping: 0
   };
   
   switch (npc.state) {
@@ -275,25 +282,35 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'staggered': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs / staminaMultiplier) {
+      // Thieves with stolen objectives recover faster (50% of normal time)
+      const recoveryTime = npc.stolenObjective ? defaultNPCConfig.staggerDurationMs * 0.5 / staminaMultiplier : defaultNPCConfig.staggerDurationMs / staminaMultiplier;
+      if (timeSinceStateChange > recoveryTime) {
         if (Math.random() < stayProbabilities.staggered) {
           return 'staggered';
         } else {
-          return 'panic';
+          return npc.stolenObjective ? 'escaping' : 'panic';
         }
       }
       break;
     }
 
     case 'panic': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs * 3 / staminaMultiplier) {
+      // Thieves with stolen objectives recover faster (50% of normal time)
+      const recoveryTime = npc.stolenObjective ? defaultNPCConfig.staggerDurationMs * 1.5 / staminaMultiplier : defaultNPCConfig.staggerDurationMs * 3 / staminaMultiplier;
+      if (timeSinceStateChange > recoveryTime) {
         if (Math.random() < stayProbabilities.panic) {
           return 'panic';
         } else {
-          // Exit panic and return to normal
-          return 'thinking';
+          // Exit panic to escaping if thief has objective, otherwise thinking
+          return npc.stolenObjective ? 'escaping' : 'thinking';
         }
       }
+      break;
+    }
+
+    case 'escaping': {
+      // Escaping state doesn't naturally transition out
+      // It only changes through collision or reaching exit
       break;
     }
   }

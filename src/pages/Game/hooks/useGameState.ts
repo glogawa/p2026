@@ -19,6 +19,7 @@ interface UseGameStateReturn {
   setLoadedLevels: (levels: Level[]) => void;
   resetGame: () => void;
   collectObjective: (objectivePos: string) => void;
+  loseObjective: (objectivePos: string) => void;
   resetCollectedObjectives: () => void;
 }
 
@@ -65,6 +66,14 @@ export function useGameState(): UseGameStateReturn {
     setCollectedObjectives((prev) => new Set(prev).add(objectivePos));
   }, []);
 
+  const loseObjective = useCallback((objectivePos: string) => {
+    setCollectedObjectives((prev) => {
+      const updated = new Set(prev);
+      updated.delete(objectivePos);
+      return updated;
+    });
+  }, []);
+
   const resetCollectedObjectives = useCallback(() => {
     setCollectedObjectives(new Set());
   }, []);
@@ -82,6 +91,7 @@ export function useGameState(): UseGameStateReturn {
     setLoadedLevels,
     resetGame,
     collectObjective,
+    loseObjective,
     resetCollectedObjectives,
   };
 }

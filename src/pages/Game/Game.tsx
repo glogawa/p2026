@@ -60,6 +60,7 @@ const Game: React.FC = () => {
     nextLevel,
     setLoadedLevels,
     collectObjective,
+    loseObjective,
     resetCollectedObjectives,
   } = gameState;
 
@@ -121,6 +122,7 @@ const Game: React.FC = () => {
       }
     },
     onObjectiveCollected: collectObjective,
+    onObjectiveLost: loseObjective,
     collectedObjectives,
     enabled: gameStarted,
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
