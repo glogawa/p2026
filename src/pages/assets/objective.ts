@@ -124,6 +124,7 @@ export function createObjective(scene: Scene, position: Vector3, scale: number =
     table.position.y += groundOffset;
     (table as any).objectiveMaterial = tableMat; // Store for later disposal
     (table as any).blueMaterial = blueMat; // Store blue material for later disposal
+    (table as any).allMeshes = [top, neck, pedestalBall, blueCircle]; // Store all child meshes for disposal
 
     return table;
 }

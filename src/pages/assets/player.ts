@@ -296,5 +296,8 @@ export function createPlayer(scene: Scene, position: Vector3, scale: number = 1,
     rig.position.copyFrom(position);
     rig.position.y += groundOffset;
 
+    // Store materials for later disposal
+    (rig as any).playerMaterials = [MAT_SUIT, MAT_SHIRT, MAT_SKIN, MAT_BOWTIE, MAT_BTN, MAT_HAIR];
+
     return rig;
 }

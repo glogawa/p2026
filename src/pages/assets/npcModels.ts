@@ -145,6 +145,10 @@ export function createMaleOlive(scene: Scene, scale: number = 1): TransformNode 
   bowMeshes.forEach(m => (m.material = MAT_BOWTIE));
 
   rig.position.y = 0.0;
+  
+  // Store materials for later disposal
+  (rig as any).npcMaterials = [MAT_SUIT, MAT_SHIRT, MAT_SKIN, MAT_BOWTIE, MAT_BTN, MAT_HAIR];
+  
   return rig;
 }
 
@@ -331,6 +335,10 @@ export function createFemaleWoman(scene: Scene, scale: number = 1): TransformNod
   shoeMeshes.forEach(m => (m.material = MAT_SHOES));
 
   rig.position.y = 0.0;
+  
+  // Store materials for later disposal
+  (rig as any).npcMaterials = [MAT_SKIN, MAT_HAIR, MAT_DRESS, MAT_DRESS2, MAT_SHOES];
+  
   return rig;
 }
 

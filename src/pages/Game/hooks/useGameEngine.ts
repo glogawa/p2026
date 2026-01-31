@@ -84,11 +84,177 @@ export function useGameEngine({
   useEffect(() => {
     if (!enabled || !canvasRef.current || !currentLevel) return;
 
+    let engine: Engine | null = null;
+    let scene: Scene | null = null;
+    let cleanupDone = false;
+
+    const cleanup = () => {
+      if (cleanupDone) return;
+      cleanupDone = true;
+      
+      console.log('[CLEANUP] Starting cleanup of game engine and NPCs...');
+      
+      if (engine) {
+        engine.stopRenderLoop();
+        console.log('[CLEANUP] Render loop stopped');
+      }
+
+      if (cameraRef.current && cameraRef.current.dispose) {
+        try {
+          cameraRef.current.dispose();
+        } catch (e) {
+          console.error('Error disposing camera:', e);
+        }
+      }
+
+      if (guiTextureRef.current) {
+        try {
+          guiTextureRef.current.dispose();
+        } catch (e) {
+          console.error('Error disposing GUI texture:', e);
+        }
+        guiTextureRef.current = null;
+      }
+
+      console.log(`[CLEANUP] Disposing ${npcsRef.current.length} NPCs...`);
+      npcsRef.current.forEach((npc) => {
+        try {
+          if (npc.guiRect) npc.guiRect.dispose();
+          if (npc.guiLine) npc.guiLine.dispose();
+          if (npc.guiTarget) npc.guiTarget.dispose();
+          if (npc.mesh && npc.mesh.npcMaterials && Array.isArray(npc.mesh.npcMaterials)) {
+            npc.mesh.npcMaterials.forEach((material: any) => {
+              try {
+                if (material && material.dispose) material.dispose();
+              } catch (e) {
+                console.error('Error disposing NPC material:', e);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Error disposing NPC:', e);
+        }
+      });
+
+      Object.values(fenceMeshesRef.current).forEach((fenceMesh) => {
+        try {
+          if (fenceMesh && typeof fenceMesh !== 'boolean') {
+            if (fenceMesh.fenceMaterial) fenceMesh.fenceMaterial.dispose();
+            if (fenceMesh.dispose) fenceMesh.dispose();
+          }
+        } catch (e) {
+          console.error('Error disposing fence:', e);
+        }
+      });
+
+      Object.values(objectiveTilesRef.current).forEach((tileData) => {
+        try {
+          if (tileData.tile) {
+            if (tileData.tile.objectiveMaterial) tileData.tile.objectiveMaterial.dispose();
+            if (tileData.tile.blueMaterial) tileData.tile.blueMaterial.dispose();
+            if (tileData.tile.allMeshes && Array.isArray(tileData.tile.allMeshes)) {
+              tileData.tile.allMeshes.forEach((mesh: any) => {
+                try {
+                  if (mesh && mesh.dispose) mesh.dispose();
+                } catch (e) {
+                  console.error('Error disposing child mesh:', e);
+                }
+              });
+            }
+            if (tileData.tile.dispose) tileData.tile.dispose();
+          }
+          if (tileData.material) tileData.material.dispose();
+        } catch (e) {
+          console.error('Error disposing objective tile:', e);
+        }
+      });
+
+      if (groundPlaneRef.current && groundPlaneRef.current.dispose) {
+        try {
+          groundPlaneRef.current.dispose();
+        } catch (e) {
+          console.error('Error disposing ground:', e);
+        }
+      }
+      if (groundMaterialRef.current && groundMaterialRef.current.dispose) {
+        try {
+          groundMaterialRef.current.dispose();
+        } catch (e) {
+          console.error('Error disposing ground material:', e);
+        }
+      }
+
+      startMeshesRef.current.forEach((mesh) => {
+        try {
+          if (mesh.startMaterial) mesh.startMaterial.dispose();
+          if (mesh.frameMaterial) mesh.frameMaterial.dispose();
+          if (mesh.handleMaterial) mesh.handleMaterial.dispose();
+          if (mesh.dispose) mesh.dispose();
+        } catch (e) {
+          console.error('Error disposing start mesh:', e);
+        }
+      });
+      exitMeshesRef.current.forEach((mesh) => {
+        try {
+          if (mesh.exitMaterial) mesh.exitMaterial.dispose();
+          if (mesh.dispose) mesh.dispose();
+        } catch (e) {
+          console.error('Error disposing exit mesh:', e);
+        }
+      });
+
+      if (playerBoxRef.current) {
+        try {
+          if (playerBoxRef.current.playerMaterials && Array.isArray(playerBoxRef.current.playerMaterials)) {
+            playerBoxRef.current.playerMaterials.forEach((material: any) => {
+              try {
+                if (material && material.dispose) material.dispose();
+              } catch (e) {
+                console.error('Error disposing player material:', e);
+              }
+            });
+          }
+          if (playerBoxRef.current.dispose) playerBoxRef.current.dispose();
+        } catch (e) {
+          console.error('Error disposing player:', e);
+        }
+      }
+
+      npcsRef.current = [];
+      fenceMeshesRef.current = {};
+      objectiveTilesRef.current = {};
+      groundPlaneRef.current = null;
+      groundMaterialRef.current = null;
+      startMeshesRef.current = [];
+      exitMeshesRef.current = [];
+      playerBoxRef.current = null;
+
+      if (scene) {
+        try {
+          scene.dispose();
+        } catch (e) {
+          console.error('Error disposing scene:', e);
+        }
+      }
+
+      if (engine) {
+        try {
+          engine.dispose();
+        } catch (e) {
+          console.error('Error disposing engine:', e);
+        }
+      }
+
+      console.log('[CLEANUP] Cleanup complete! Old level resources should be gone.');
+    };
+
     const setupScene = async () => {
-      const engine = new Engine(canvasRef.current!, true);
+      engine = new Engine(canvasRef.current!, true);
       engine.enableOfflineSupport = false;
       
-      const scene = new Scene(engine);
+      scene = new Scene(engine!);
+      const sceneRef = scene;
+      const engineRef = engine;
       const camera = createCamera(scene, canvasRef.current!);
       cameraRef.current = camera;
       createLight(scene);
@@ -148,7 +314,7 @@ export function useGameEngine({
           const [x, y] = pos.split(',').map(Number);
           const worldX = x - gridSize / 2 + 0.5;
           const worldZ = y - gridSize / 2 + 0.5;
-          const fenceMesh = createFence(scene, new Vector3(worldX, 0, worldZ), fenceConfig);
+          const fenceMesh = createFence(scene!, new Vector3(worldX, 0, worldZ), fenceConfig);
           fenceMeshesRef.current[pos] = fenceMesh;
           fences.push(new Vector3(worldX, 0, worldZ));
         }
@@ -165,7 +331,7 @@ export function useGameEngine({
           const [x, y] = pos.split(',').map(Number);
           const worldX = x - gridSize / 2 + 0.5;
           const worldZ = y - gridSize / 2 + 0.5;
-          const npcMesh = createNPC(scene, new Vector3(worldX, 0, worldZ), 0.5);
+          const npcMesh = createNPC(scene!, new Vector3(worldX, 0, worldZ), 0.5);
           
           let npcStats_data = { stamina: 3, agility: 5 };
           if (npcStats) {
@@ -183,7 +349,7 @@ export function useGameEngine({
           npcsRef.current.push(npcInstance);
           
           // Attach GUI label to NPC (and set initial visibility)
-          attachNPCGUI(npcInstance, scene, guiTexture);
+          attachNPCGUI(npcInstance, scene!, guiTexture);
           if (npcInstance.guiRect) {
             npcInstance.guiRect.isVisible = showNPCGui;
           }
@@ -422,101 +588,25 @@ export function useGameEngine({
           npc.mesh.position = npc.position;
         });
         }
-        scene.render();
+        scene!.render();
       });
 
       return () => {
         // Stop the render loop
-        engine.stopRenderLoop();
+        engine!.stopRenderLoop();
 
         // Dispose GUI texture
         if (guiTextureRef.current) {
           guiTextureRef.current.dispose();
           guiTextureRef.current = null;
         }
-
-        // Dispose NPC GUI elements and materials
-        npcsRef.current.forEach((npc) => {
-          if (npc.guiRect) {
-            npc.guiRect.dispose();
-          }
-          if (npc.guiLine) {
-            npc.guiLine.dispose();
-          }
-          if (npc.guiTarget) {
-            npc.guiTarget.dispose();
-          }
-          if (npc.mesh && npc.mesh.npcMaterial) {
-            npc.mesh.npcMaterial.dispose();
-          }
-          // Mesh is disposed with scene
-        });
-
-        // Dispose fence meshes and materials
-        Object.values(fenceMeshesRef.current).forEach((fenceMesh) => {
-          if (fenceMesh && typeof fenceMesh !== 'boolean') {
-            if (fenceMesh.fenceMaterial) {
-              fenceMesh.fenceMaterial.dispose();
-            }
-            fenceMesh.dispose();
-          }
-        });
-
-        // Dispose objective tile materials
-        Object.values(objectiveTilesRef.current).forEach((tileData) => {
-          if (tileData.tile && tileData.tile.objectiveMaterial) {
-            tileData.tile.objectiveMaterial.dispose();
-          }
-          if (tileData.material) {
-            tileData.material.dispose();
-          }
-          // Tile mesh is disposed with scene
-        });
-
-        // Dispose ground plane and material
-        if (groundPlaneRef.current) {
-          groundPlaneRef.current.dispose();
-        }
-        if (groundMaterialRef.current) {
-          groundMaterialRef.current.dispose();
-        }
-
-        // Dispose start and exit meshes and materials
-        startMeshesRef.current.forEach((mesh) => {
-          if (mesh.startMaterial) {
-            mesh.startMaterial.dispose();
-          }
-          mesh.dispose();
-        });
-        exitMeshesRef.current.forEach((mesh) => {
-          if (mesh.exitMaterial) {
-            mesh.exitMaterial.dispose();
-          }
-          mesh.dispose();
-        });
-
-        // Dispose player
-        if (playerBoxRef.current) {
-          playerBoxRef.current.dispose();
-        }
-
-        // Clear refs
-        npcsRef.current = [];
-        fenceMeshesRef.current = {};
-        objectiveTilesRef.current = {};
-        groundPlaneRef.current = null;
-        groundMaterialRef.current = null;
-        startMeshesRef.current = [];
-        exitMeshesRef.current = [];
-        playerBoxRef.current = null;
-
-        // Dispose scene and engine
-        scene.dispose();
-        engine.dispose();
       };
     };
 
     // Call the async setup function
     setupScene();
+
+    // Return cleanup function to be called on unmount or dependency change
+    return cleanup;
   }, [enabled, canvasRef, currentLevel, showNPCGui]);
 }
