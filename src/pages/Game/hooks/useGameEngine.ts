@@ -49,6 +49,7 @@ export function useGameEngine({
   const onNPCCollisionRef = useRef(onNPCCollision);
   const onObjectiveLostRef = useRef(onObjectiveLost);
   const onLevelCompleteRef = useRef(onLevelComplete);
+  const alertPhaseRef = useRef(alertPhase);
   const onGameLostRef = useRef(onGameLost);
   const staggerStateRef = useRef({ isStaggered: false, staggerEndTime: 0 });
   const fenceMeshesRef = useRef<{ [key: string]: any }>({});
@@ -74,7 +75,12 @@ export function useGameEngine({
     onObjectiveLostRef.current = onObjectiveLost;
     onLevelCompleteRef.current = onLevelComplete;
     onGameLostRef.current = onGameLost;
-  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete, onGameLost]);
+    onNPCCollisionRef.current = onNPCCollision;
+  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete, onGameLost, onNPCCollision]);
+
+  useEffect(() => {
+    alertPhaseRef.current = alertPhase;
+  }, [alertPhase]);
 
   useEffect(() => {
     joystickMovementRef.current = joystickMovement;
@@ -569,7 +575,7 @@ export function useGameEngine({
                 changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
                 npc.panicStartTime = currentTime;
                 // Trigger collision callback for non-thief NPC during low alert
-                if (alertPhase === 'low') {
+                if (alertPhaseRef.current === 'low') {
                   onNPCCollisionRef.current?.(false);
                 }
               }
