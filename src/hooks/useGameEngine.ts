@@ -121,9 +121,9 @@ export function useGameEngine({
           if (!collectedRef.current.has(objectivePos) && Vector3.Distance(box.position, objectiveVector) < 0.5) {
             collectedRef.current.add(objectivePos);
             onObjectiveCollectedRef.current(objectivePos);
-            // Update tile color to gray
+            // Hide the objective tile
             if (objectiveTilesRef.current[objectivePos]) {
-              (objectiveTilesRef.current[objectivePos].material as any).diffuseColor = new Color3(0.5, 0.5, 0.5);
+              objectiveTilesRef.current[objectivePos].tile.isVisible = false;
             }
           }
         });
