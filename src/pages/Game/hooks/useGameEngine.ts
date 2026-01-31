@@ -16,12 +16,14 @@ interface UseGameEngineOptions {
   onGameLost: () => void;
   onObjectiveCollected: (objectivePos: string) => void;
   onObjectiveLost: (objectivePos: string) => void;
+  onNPCCollision?: (isThief: boolean) => void;
   collectedObjectives: Set<string>;
   enabled: boolean;
   fenceConfig?: FenceConfig;
   showNPCGui?: boolean;
   npcStats?: NPCStatsConfig;
   playerStats?: { stamina: number; agility: number };
+  alertPhase?: 'high' | 'low';
 }
 
 export function useGameEngine({
@@ -32,16 +34,19 @@ export function useGameEngine({
   onGameLost,
   onObjectiveCollected,
   onObjectiveLost,
+  onNPCCollision,
   collectedObjectives,
   enabled,
   fenceConfig = defaultFenceConfig,
   showNPCGui = true,
   npcStats,
   playerStats,
+  alertPhase = 'low',
 }: UseGameEngineOptions) {
   const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
   const collectedRef = useRef(collectedObjectives);
   const onObjectiveCollectedRef = useRef(onObjectiveCollected);
+  const onNPCCollisionRef = useRef(onNPCCollision);
   const onObjectiveLostRef = useRef(onObjectiveLost);
   const onLevelCompleteRef = useRef(onLevelComplete);
   const onGameLostRef = useRef(onGameLost);
@@ -542,10 +547,16 @@ export function useGameEngine({
                 onObjectiveLostRef.current(stolenObjectivePos);
                 // Immediately enter fleeing state (immune to all interactions for 2 seconds)
                 changeNPCState(npc, 'fleeing', currentTime, gridSize, playerRig.position);
+                // Trigger collision callback for thief
+                onNPCCollisionRef.current?.(true);
               } else {
                 // Regular collision - NPC gets staggered
                 changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
                 npc.panicStartTime = currentTime;
+                // Trigger collision callback for non-thief NPC during low alert
+                if (alertPhase === 'low') {
+                  onNPCCollisionRef.current?.(false);
+                }
               }
               // Push NPC back
               const dirX = npc.position.x - playerRig.position.x;
