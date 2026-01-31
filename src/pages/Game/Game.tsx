@@ -4,8 +4,10 @@ import { arrowBack } from 'ionicons/icons';
 import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
+import { useNotificationManager } from './hooks/useNotificationManager';
 import { WinScreen, StartScreen, LevelLoader, FpsCounter, LoseScreen } from './ui';
 import { LoadCustomGameModal, GameModeScreen } from './components';
+import NotificationPopup from './components/NotificationPopup';
 import PageHeader from '../../components/PageHeader';
 import { generateRandomLevels } from './utils/generateRandomLevel';
 import { storyModeData } from './data/storyMode';
@@ -53,6 +55,7 @@ const Game: React.FC = () => {
   const [maskActive, setMaskActive] = useState<boolean>(false);
   const [maskDestroying, setMaskDestroying] = useState<boolean>(false);
   const [loseReason, setLoseReason] = useState<'thief' | 'recognized'>('thief');
+  const [welcomeShown, setWelcomeShown] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -61,6 +64,7 @@ const Game: React.FC = () => {
 
   // Use modular hooks
   const gameState = useGameState();
+  const { activeNotification, showNotification, closeNotification } = useNotificationManager();
   const {
     gameStarted,
     currentLevel,
@@ -77,6 +81,18 @@ const Game: React.FC = () => {
     resetCollectedObjectives,
     loseGame,
   } = gameState;
+
+  // Story mode welcome notification
+  useEffect(() => {
+    if (gameStarted && gameMode === 'story' && currentLevelIndex === 0 && !welcomeShown) {
+      const timer = setTimeout(() => {
+        showNotification('Welcome Sir', 'Your mission begins now...', 'info');
+        setWelcomeShown(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameStarted, gameMode, currentLevelIndex, welcomeShown, showNotification]);
 
   // Setup FPS counter
   useEffect(() => {
@@ -117,12 +133,15 @@ const Game: React.FC = () => {
 
   // Alert phase cycling system
   useEffect(() => {
-    if (!gameStarted) return;
+    if (!gameStarted || currentLevelIndex === 0) return; // Skip alert system on first level
 
     const alertInterval = setInterval(() => {
-      alertStateRef.current.timer -= 1;
+      // Skip timer decrement if notification is open
+      if (!activeNotification) {
+        alertStateRef.current.timer -= 1;
+      }
       
-      if (alertStateRef.current.timer <= 0) {
+      if (alertStateRef.current.timer <= 0 && !activeNotification) {
         // Check high alert end condition
         if (alertStateRef.current.phase === 'high') {
           // High alert time is up
@@ -160,7 +179,7 @@ const Game: React.FC = () => {
     }, 1000); // Update every second
 
     return () => clearInterval(alertInterval);
-  }, [gameStarted, maskActive, loseGame]);
+  }, [gameStarted, maskActive, loseGame, activeNotification, currentLevelIndex]);
 
   // Setup joystick
   useGameJoystick({
@@ -169,6 +188,7 @@ const Game: React.FC = () => {
     onMove: (x, z) => {
       joystickMovementRef.current = { x, z };
     },
+    enabled: !activeNotification,
   });
 
   // Setup game engine
@@ -207,7 +227,7 @@ const Game: React.FC = () => {
       }
     },
     collectedObjectives,
-    enabled: gameStarted,
+    enabled: gameStarted && !activeNotification,
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
     showNPCGui,
     npcStats,
@@ -273,6 +293,7 @@ const Game: React.FC = () => {
     setMaskDestroying(false);
     setAlertPhase('low');
     setAlertTimer(20);
+    setWelcomeShown(false);
     alertStateRef.current = { phase: 'low', timer: 20 };
     
     if (gameMode === 'story') {
@@ -303,7 +324,18 @@ const Game: React.FC = () => {
     return (
       <IonPage>
         <PageHeader title="Game">
-          <IonButton onClick={() => gameState.endGame()}>Leave Game</IonButton>
+          <IonButton onClick={() => {
+            // Reset all game states when leaving
+            setLoseReason('thief');
+            setMaskActive(false);
+            setMaskDestroying(false);
+            setAlertPhase('low');
+            setAlertTimer(20);
+            setWelcomeShown(false);
+            alertStateRef.current = { phase: 'low', timer: 20 };
+            closeNotification();
+            gameState.endGame();
+          }}>Leave Game</IonButton>
         </PageHeader>
         <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0, display: 'block' }}>
           <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative', display: 'block' }}>
@@ -378,29 +410,31 @@ const Game: React.FC = () => {
               </div>
 
               {/* Alert Phase */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: alertPhase === 'high' 
-                  ? 'rgba(255, 67, 54, 0.2)' 
-                  : 'rgba(76, 175, 80, 0.2)',
-                borderRadius: '8px',
-                border: `1px solid ${alertPhase === 'high' ? '#FF4336' : '#4CAF50'}`,
-                fontSize: '14px',
-                color: alertPhase === 'high' ? '#FF4336' : '#4CAF50'
-              }}>
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: alertPhase === 'high' ? '#FF4336' : '#4CAF50',
-                  borderRadius: '50%',
-                  display: 'inline-block',
-                  animation: alertPhase === 'high' ? 'pulse 0.5s ease-in-out infinite' : 'none'
-                }}></span>
-                {alertPhase === 'high' ? 'HIGH' : 'LOW'} {alertTimer}s
-              </div>
+              {currentLevelIndex !== 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 12px',
+                  background: alertPhase === 'high' 
+                    ? 'rgba(255, 67, 54, 0.2)' 
+                    : 'rgba(76, 175, 80, 0.2)',
+                  borderRadius: '8px',
+                  border: `1px solid ${alertPhase === 'high' ? '#FF4336' : '#4CAF50'}`,
+                  fontSize: '14px',
+                  color: alertPhase === 'high' ? '#FF4336' : '#4CAF50'
+                }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: alertPhase === 'high' ? '#FF4336' : '#4CAF50',
+                    borderRadius: '50%',
+                    display: 'inline-block',
+                    animation: alertPhase === 'high' ? 'pulse 0.5s ease-in-out infinite' : 'none'
+                  }}></span>
+                  {alertPhase === 'high' ? 'HIGH' : 'LOW'} {alertTimer}s
+                </div>
+              )}
             </div>
             <button 
               onClick={() => setShowNPCGui(!showNPCGui)}
@@ -428,6 +462,7 @@ const Game: React.FC = () => {
             >
               {showNPCGui ? 'Hide NPC GUI' : 'Show NPC GUI'}
             </button>
+            <NotificationPopup notification={activeNotification} onClose={closeNotification} />
           </div>
         </IonContent>
       </IonPage>
