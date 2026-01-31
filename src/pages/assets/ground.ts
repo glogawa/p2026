@@ -38,11 +38,11 @@ export async function createGround(
                     startMeshes.push(startMesh);
                     break;
                 case 'end':
-                    const exitMesh = createExit(scene, position);
+                    const exitMesh = createExit(scene, position, 0.8, -0.4);
                     exitMeshes.push(exitMesh);
                     break;
                 case 'objective':
-                    const objective = createObjective(scene, position);
+                    const objective = createObjective(scene, position, 0.4, -0.3);
                     if (isCollected) {
                         objective.isVisible = false;
                     }

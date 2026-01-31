@@ -1,5 +1,6 @@
-import { Scene, MeshBuilder, Color3, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color3, StandardMaterial, Vector3, TransformNode } from '@babylonjs/core';
 import { AdvancedDynamicTexture, Rectangle, TextBlock, Line, Ellipse } from '@babylonjs/gui';
+import { createRandomNPCModel } from './npcModels';
 
 export interface NPCConfig {
   thinkingDurationMs: number; // How long NPCs stand still
@@ -41,18 +42,14 @@ export interface NPCInstance {
   agility?: number;
 }
 
-export function createNPC(scene: Scene, position: Vector3): any {
-  // Create reverse pyramid using a cylinder that's tapered
-  const npc = MeshBuilder.CreateCylinder('npc', { diameterTop: 0, diameterBottom: 0.8, height: 1, tessellation: 8 }, scene);
-  npc.position = position;
-
-  const material = new StandardMaterial('npcMaterial', scene);
-  material.diffuseColor = new Color3(1, 0.647, 0); // Orange
-  material.specularColor = new Color3(0.2, 0.2, 0.2);
-  npc.material = material;
-  (npc as any).npcMaterial = material; // Store for later disposal
-
-  return npc;
+export function createNPC(scene: Scene, position: Vector3, scale: number = 1): TransformNode {
+  // Create a random NPC model with the specified scale
+  const npcRig = createRandomNPCModel(scene, scale);
+  
+  // Set the position
+  npcRig.position = position;
+  
+  return npcRig;
 }
 
 export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: AdvancedDynamicTexture): void {
@@ -60,14 +57,14 @@ export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: Advance
   const stateRect = new Rectangle();
   const borderColor = "#ffffff55";
   stateRect.width = 0.15;
-  stateRect.height = '40px';
+  stateRect.height = '30px';
   stateRect.cornerRadius = 10;
   stateRect.color = borderColor;
   stateRect.thickness = 1;
   stateRect.background = 'rgba(0, 0, 0, 0.7)';
   textureRef.addControl(stateRect);
   stateRect.linkWithMesh(npc.mesh);
-  stateRect.linkOffsetY = -100;
+  stateRect.linkOffsetY = -150;
 
   // Create text block to show the state
   const label = new TextBlock();
@@ -82,8 +79,8 @@ export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: Advance
   const line = new Line();
   line.lineWidth = 2;
   line.color = borderColor;
-  line.y2 = 20;
-  line.linkOffsetY = 0;
+  line.y2 = 15;
+  line.linkOffsetY = -70;
   textureRef.addControl(line);
   line.linkWithMesh(npc.mesh);
   line.connectedControl = stateRect;

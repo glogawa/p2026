@@ -135,5 +135,10 @@ export function createStart(scene: Scene, position: Vector3, scale: number = 1, 
     startModel.position.copyFrom(position);
     startModel.position.y += groundOffset;
 
+    // Store materials for later disposal
+    (startModel as any).startMaterial = doorMat;
+    (startModel as any).frameMaterial = frameMat;
+    (startModel as any).handleMaterial = handleMat;
+
     return startModel;
 }
