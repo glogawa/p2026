@@ -301,15 +301,15 @@ const Game: React.FC = () => {
                 <p style={{ margin: '0 0 15px 0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
                   Follow the narrative with carefully crafted levels
                 </p>
-                <StartScreen onStartGame={handleStartGame} />
-                <IonButton
-                  className="glass-button"
-                  onClick={() => setGameMode('selection')}
-                  expand="block"
-                  style={{ marginTop: '10px' }}
-                >
-                  <IonIcon icon={arrowBack} slot="start" />
-                </IonButton>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                  <IonButton
+                    className="glass-button"
+                    onClick={() => setGameMode('selection')}
+                  >
+                    <IonIcon icon={arrowBack} slot="start" />
+                  </IonButton>
+                  <StartScreen onStartGame={handleStartGame} />
+                </div>
               </IonCardContent>
             </IonCard>
           </div>
@@ -333,15 +333,15 @@ const Game: React.FC = () => {
             )}
             <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
               <IonCardContent>
-                <StartScreen onStartGame={handleStartGame} />
-                <IonButton
-                  className="glass-button"
-                  onClick={() => setGameMode('selection')}
-                  expand="block"
-                  style={{ marginTop: '10px' }}
-                >
-                  <IonIcon icon={arrowBack} slot="start" />
-                </IonButton>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                  <IonButton
+                    className="glass-button"
+                    onClick={() => setGameMode('selection')}
+                  >
+                    <IonIcon icon={arrowBack} slot="start" />
+                  </IonButton>
+                  <StartScreen onStartGame={handleStartGame} />
+                </div>
               </IonCardContent>
             </IonCard>
           </div>
@@ -354,15 +354,15 @@ const Game: React.FC = () => {
                 <p style={{ margin: '0 0 15px 0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
                   Generate random levels for endless fun
                 </p>
-                <StartScreen onStartGame={handleStartGame} />
-                <IonButton
-                  className="glass-button"
-                  onClick={() => setGameMode('selection')}
-                  expand="block"
-                  style={{ marginTop: '10px' }}
-                >
-                  <IonIcon icon={arrowBack} slot="start" />
-                </IonButton>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                  <IonButton
+                    className="glass-button"
+                    onClick={() => setGameMode('selection')}
+                  >
+                    <IonIcon icon={arrowBack} slot="start" />
+                  </IonButton>
+                  <StartScreen onStartGame={handleStartGame} />
+                </div>
               </IonCardContent>
             </IonCard>
           </div>
