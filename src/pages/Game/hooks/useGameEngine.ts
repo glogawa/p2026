@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Engine, Scene, Vector3, MeshBuilder, KeyboardEventTypes, Color3 } from '@babylonjs/core';
-import { createGround } from '../pages/assets/ground';
-import { createCamera } from '../pages/assets/camera';
-import { createLight } from '../pages/assets/light';
+import { createGround } from '../../assets/ground';
+import { createCamera } from '../../assets/camera';
+import { createLight } from '../../assets/light';
 
 interface UseGameEngineOptions {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;

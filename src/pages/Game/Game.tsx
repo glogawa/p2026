@@ -1,8 +1,8 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton } from '@ionic/react';
 import { useState, useRef } from 'react';
-import { useGameState } from '../../hooks/useGameState';
-import { useGameEngine } from '../../hooks/useGameEngine';
-import { useGameJoystick } from '../../hooks/useGameJoystick';
+import { useGameState } from './hooks';
+import { useGameEngine } from './hooks';
+import { useGameJoystick } from './hooks';
 import { WinScreen } from './components/WinScreen';
 import { LevelLoader } from './components/LevelLoader';
 import { StartScreen } from './components/StartScreen';
