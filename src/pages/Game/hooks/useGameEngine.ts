@@ -369,7 +369,7 @@ export function useGameEngine({
             case 'panic':
               // Move to adjacent tiles randomly at high speed
               if (!npc.targetPosition || Vector3.Distance(npc.position, npc.targetPosition) < 0.3) {
-                npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+                npc.targetPosition = getRandomAdjacentPosition(npc, gridSize, currentLevel.positions, box.position);
               }
               if (npc.targetPosition) {
                 const dirX = npc.targetPosition.x - npc.position.x;
