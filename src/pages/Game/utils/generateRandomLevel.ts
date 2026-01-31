@@ -16,7 +16,7 @@ function getRandomPosition(gridSize: number, excludePositions: Set<string>): str
 
 export function generateRandomLevel(id: number = 1): Level {
   const gridSize = Math.floor(Math.random() * (20 - 6 + 1)) + 6; // Random between 6 and 20
-  const positions: { [key: string]: 'start' | 'end' | 'objective' | null } = {};
+  const positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null } = {};
   const usedPositions = new Set<string>();
 
   // Generate start position
@@ -35,6 +35,22 @@ export function generateRandomLevel(id: number = 1): Level {
     const objPos = getRandomPosition(gridSize, usedPositions);
     positions[objPos] = 'objective';
     usedPositions.add(objPos);
+  }
+
+  // Generate random number of fences (0 to 5)
+  const fenceCount = Math.floor(Math.random() * 6);
+  for (let i = 0; i < fenceCount; i++) {
+    const fencePos = getRandomPosition(gridSize, usedPositions);
+    positions[fencePos] = 'fence';
+    usedPositions.add(fencePos);
+  }
+
+  // Generate random number of NPCs (0 to 5)
+  const npcCount = Math.floor(Math.random() * 6);
+  for (let i = 0; i < npcCount; i++) {
+    const npcPos = getRandomPosition(gridSize, usedPositions);
+    positions[npcPos] = 'npc';
+    usedPositions.add(npcPos);
   }
 
   return {

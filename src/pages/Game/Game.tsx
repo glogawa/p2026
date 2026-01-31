@@ -161,7 +161,7 @@ const Game: React.FC = () => {
         <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0 }}>
           <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
-            <FpsCounter fps={fps} />
+            {/* <FpsCounter fps={fps} /> */}
             <button 
               onClick={() => setShowNPCGui(!showNPCGui)}
               style={{
