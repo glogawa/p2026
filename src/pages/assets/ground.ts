@@ -34,7 +34,7 @@ export async function createGround(
             
             switch (type) {
                 case 'start':
-                    const startMesh = await createStart(scene, position);
+                    const startMesh = await createStart(scene, position, 0.8, -0.4);
                     startMeshes.push(startMesh);
                     break;
                 case 'end':

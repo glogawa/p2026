@@ -1,6 +1,6 @@
 import { Scene, Vector3, MeshBuilder, Color3, StandardMaterial, TransformNode } from '@babylonjs/core';
 
-export function createStart(scene: Scene, position: Vector3): any {
+export function createStart(scene: Scene, position: Vector3, scale: number = 1, groundOffset: number = 0): any {
     // ================= MATERIALS =================
     const doorMat = new StandardMaterial("doorMat", scene);
     doorMat.diffuseColor = new Color3(0.79, 0.55, 0.29);
@@ -13,9 +13,9 @@ export function createStart(scene: Scene, position: Vector3): any {
     handleMat.specularColor = new Color3(1, 1, 1);
 
     // ================= DIMENSIONS =================
-    const doorHeight = 2.2;
-    const doorWidth = 0.96;
-    const doorDepth = 0.12;
+    const doorHeight = 2.2 * scale;
+    const doorWidth = 0.96 * scale;
+    const doorDepth = 0.12 * scale;
     const doorY = doorHeight / 2;
 
     // ================= HINGES =================
@@ -46,14 +46,14 @@ export function createStart(scene: Scene, position: Vector3): any {
 
     // ================= HANDLE FUNCTION =================
     function createHandle(door: any, side: string) {
-        const handleY = 1.05 - doorY;
-        const handleZ = doorDepth / 2 + 0.03;
-        const edgeInset = doorWidth / 2 - 0.12;
+        const handleY = (1.05 * scale) - doorY;
+        const handleZ = (doorDepth / 2) + (0.03 * scale);
+        const edgeInset = (doorWidth / 2) - (0.12 * scale);
         const handleX = side === "right" ? -edgeInset : edgeInset;
 
         const plate = MeshBuilder.CreateBox(
             "plate",
-            { width: 0.12, height: 0.18, depth: 0.02 },
+            { width: 0.12 * scale, height: 0.18 * scale, depth: 0.02 * scale },
             scene
         );
         plate.material = handleMat;
@@ -62,26 +62,26 @@ export function createStart(scene: Scene, position: Vector3): any {
 
         const stem = MeshBuilder.CreateCylinder(
             "stem",
-            { height: 0.05, diameter: 0.03 },
+            { height: 0.05 * scale, diameter: 0.03 * scale },
             scene
         );
         stem.material = handleMat;
         stem.parent = door;
         stem.rotation.x = Math.PI / 2;
-        stem.position.set(handleX, handleY, handleZ + 0.035);
+        stem.position.set(handleX, handleY, handleZ + 0.035 * scale);
 
         const grip = MeshBuilder.CreateCylinder(
             "grip",
-            { height: 0.18, diameter: 0.035 },
+            { height: 0.18 * scale, diameter: 0.035 * scale },
             scene
         );
         grip.material = handleMat;
         grip.parent = door;
         grip.rotation.z = side === "right" ? Math.PI / 2 : -Math.PI / 2;
         grip.position.set(
-            handleX + (side === "right" ? 0.09 : -0.09),
+            handleX + (side === "right" ? 0.09 * scale : -0.09 * scale),
             handleY,
-            handleZ + 0.035
+            handleZ + 0.035 * scale
         );
     }
 
@@ -89,9 +89,9 @@ export function createStart(scene: Scene, position: Vector3): any {
     createHandle(leftDoor, "left");
 
     // ================= FRAME =================
-    const frameHeight = 2.3;
-    const frameDepth = 0.2;
-    const frameWidth = 0.12;
+    const frameHeight = 2.3 * scale;
+    const frameDepth = 0.2 * scale;
+    const frameWidth = 0.12 * scale;
     const totalDoorWidth = doorWidth * 2;
     const totalFrameWidth = totalDoorWidth + frameWidth * 2;
 
@@ -132,7 +132,8 @@ export function createStart(scene: Scene, position: Vector3): any {
     frameT.parent = startModel;
 
     // Position the entire model at the provided location
-    startModel.position = position;
+    startModel.position.copyFrom(position);
+    startModel.position.y += groundOffset;
 
     return startModel;
 }
