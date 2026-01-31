@@ -128,6 +128,8 @@ const Game: React.FC = () => {
     npcStats,
   });
 
+  const totalObjectives = currentLevel ? Object.values(currentLevel.positions).filter(pos => pos === 'objective').length : 0;
+
   const loadLevels = () => {
     try {
       const data: LevelData = JSON.parse(pastedJson);
@@ -196,6 +198,22 @@ const Game: React.FC = () => {
           <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
             {/* <FpsCounter fps={fps} /> */}
+            <div style={{
+              position: 'absolute',
+              top: '10px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '10px 20px',
+              color: 'white',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              zIndex: 1000
+            }}>
+              {collectedObjectives.size} / {totalObjectives}
+            </div>
             <button 
               onClick={() => setShowNPCGui(!showNPCGui)}
               style={{
