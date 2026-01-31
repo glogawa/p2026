@@ -1,2 +1,129 @@
 /* For information on how to create your own theme, please refer to:
 http://ionicframework.com/docs/theming/ */
+
+/* Ionic Variables and Theming - Light Mode */
+:root {
+  --ion-color-primary: #3880ff;
+  --ion-color-primary-rgb: 56, 128, 255;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #3171e0;
+  --ion-color-primary-tint: #4c8dff;
+
+  --ion-color-secondary: #5260ff;
+  --ion-color-secondary-rgb: 82, 96, 255;
+  
+  --ion-color-success: #2dd36f;
+  --ion-color-warning: #ffc409;
+  --ion-color-danger: #eb445a;
+
+  --ion-color-medium: #92949c;
+  --ion-color-medium-rgb: 146, 148, 156;
+  --ion-color-light: #f4f5f8;
+  --ion-color-light-rgb: 244, 245, 248;
+  
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #000000;
+  --ion-text-color-rgb: 0, 0, 0;
+  --ion-border-color: #e0e0e0;
+  
+  /* Custom variables for better control */
+  --hover-background: rgba(0, 0, 0, 0.04);
+  --active-background: rgba(56, 128, 255, 0.12);
+  
+  /* Liquid Glass / Glassmorphism Variables */
+  --glass-background: rgba(255, 255, 255, 0.7);
+  --glass-background-hover: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --glass-shadow-hover: 0 12px 40px 0 rgba(31, 38, 135, 0.25);
+  --glass-blur: 12px;
+  --glass-blur-strong: 20px;
+}
+
+/* Dark mode - Optimized for better contrast and subtle interactions */
+.dark {
+  --ion-color-primary: #5f9cff;
+  --ion-color-primary-rgb: 95, 156, 255;
+  --ion-color-primary-contrast: #000000;
+  --ion-color-primary-contrast-rgb: 0, 0, 0;
+  --ion-color-primary-shade: #5489e0;
+  --ion-color-primary-tint: #6fa6ff;
+
+  --ion-color-secondary: #6d7aff;
+  --ion-color-secondary-rgb: 109, 122, 255;
+  
+  --ion-color-success: #2fdf75;
+  --ion-color-warning: #ffd534;
+  --ion-color-danger: #ff4961;
+
+  --ion-color-medium: #a0a2ab;
+  --ion-color-medium-rgb: 160, 162, 171;
+  --ion-color-light: #2a2a2e;
+  --ion-color-light-rgb: 42, 42, 46;
+
+  --ion-background-color: #1a1a1d;
+  --ion-background-color-rgb: 26, 26, 29;
+  --ion-text-color: #e8e8e8;
+  --ion-text-color-rgb: 232, 232, 232;
+  --ion-border-color: #2d2d30;
+  
+  /* Custom variables for dark mode - subtle hover effects */
+  --hover-background: rgba(255, 255, 255, 0.05);
+  --active-background: rgba(95, 156, 255, 0.15);
+  
+  /* Liquid Glass / Glassmorphism Variables - Dark Mode */
+  --glass-background: rgba(26, 26, 29, 0.6);
+  --glass-background-hover: rgba(26, 26, 29, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  --glass-shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
+  --glass-blur: 12px;
+  --glass-blur-strong: 20px;
+}
+
+/* Liquid Glass Theme */
+
+.ion-page {
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+.ion-content {
+  --background: transparent;
+}
+
+.glass-card {
+  background: var(--glass-background);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  padding: 20px;
+  color: var(--ion-text-color);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: var(--glass-background-hover);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+.glass-button {
+  background: var(--glass-background);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 15px;
+  color: var(--ion-text-color);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover {
+  background: var(--glass-background-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover);
+}
