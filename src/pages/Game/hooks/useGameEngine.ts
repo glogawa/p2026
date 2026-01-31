@@ -13,6 +13,7 @@ interface UseGameEngineOptions {
   currentLevel: any;
   joystickMovement: { x: number; z: number };
   onLevelComplete: () => void;
+  onGameLost: () => void;
   onObjectiveCollected: (objectivePos: string) => void;
   onObjectiveLost: (objectivePos: string) => void;
   collectedObjectives: Set<string>;
@@ -28,6 +29,7 @@ export function useGameEngine({
   currentLevel,
   joystickMovement,
   onLevelComplete,
+  onGameLost,
   onObjectiveCollected,
   onObjectiveLost,
   collectedObjectives,
@@ -42,6 +44,7 @@ export function useGameEngine({
   const onObjectiveCollectedRef = useRef(onObjectiveCollected);
   const onObjectiveLostRef = useRef(onObjectiveLost);
   const onLevelCompleteRef = useRef(onLevelComplete);
+  const onGameLostRef = useRef(onGameLost);
   const staggerStateRef = useRef({ isStaggered: false, staggerEndTime: 0 });
   const fenceMeshesRef = useRef<{ [key: string]: any }>({});
   const npcsRef = useRef<NPCInstance[]>([]);
@@ -65,7 +68,8 @@ export function useGameEngine({
     onObjectiveCollectedRef.current = onObjectiveCollected;
     onObjectiveLostRef.current = onObjectiveLost;
     onLevelCompleteRef.current = onLevelComplete;
-  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete]);
+    onGameLostRef.current = onGameLost;
+  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete, onGameLost]);
 
   useEffect(() => {
     joystickMovementRef.current = joystickMovement;
@@ -484,9 +488,8 @@ export function useGameEngine({
         // Check if any thief with stolen objective reached the exit
         npcsRef.current.forEach((npc) => {
           if (npc.stolenObjective && endPos && Vector3.Distance(npc.position, endPos) < 0.5) {
-            // Thief escaped! Add stolen objective back to collected (but they got away with it)
-            // Player loses the objective permanently
-            npc.stolenObjective = undefined;
+            // Thief escaped! Game over - player loses
+            onGameLostRef.current();
           }
         });
 

@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
-import { WinScreen, StartScreen, LevelLoader, FpsCounter } from './ui';
+import { WinScreen, StartScreen, LevelLoader, FpsCounter, LoseScreen } from './ui';
 import PageHeader from '../../components/PageHeader';
 import { generateRandomLevels } from './utils/generateRandomLevel';
 import './Game.css';
@@ -54,6 +54,7 @@ const Game: React.FC = () => {
     currentLevel,
     currentLevelIndex,
     gameWon,
+    gameLost,
     loadedLevels,
     collectedObjectives,
     startGame,
@@ -62,6 +63,7 @@ const Game: React.FC = () => {
     collectObjective,
     loseObjective,
     resetCollectedObjectives,
+    loseGame,
   } = gameState;
 
   // Setup FPS counter
@@ -123,6 +125,7 @@ const Game: React.FC = () => {
     },
     onObjectiveCollected: collectObjective,
     onObjectiveLost: loseObjective,
+    onGameLost: loseGame,
     collectedObjectives,
     enabled: gameStarted,
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
@@ -259,13 +262,16 @@ const Game: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         {gameWon && <WinScreen onPlayAgain={handlePlayAgain} />}
-        <LevelLoader
-          pastedJson={pastedJson}
-          onJsonChange={setPastedJson}
-          onLoadLevels={loadLevels}
-          loadedLevels={loadedLevels}
-        />
-        {!gameWon && <StartScreen onStartGame={handleStartGame} />}
+        {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} />}
+        {!gameWon && !gameLost && (
+          <LevelLoader
+            pastedJson={pastedJson}
+            onJsonChange={setPastedJson}
+            onLoadLevels={loadLevels}
+            loadedLevels={loadedLevels}
+          />
+        )}
+        {!gameWon && !gameLost && <StartScreen onStartGame={handleStartGame} />}
       </IonContent>
     </IonPage>
   );

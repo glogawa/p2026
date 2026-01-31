@@ -11,11 +11,13 @@ interface UseGameStateReturn {
   currentLevel: Level | null;
   currentLevelIndex: number;
   gameWon: boolean;
+  gameLost: boolean;
   loadedLevels: Level[] | null;
   collectedObjectives: Set<string>;
   startGame: (levels: Level[]) => void;
   nextLevel: (allLevels: Level[]) => void;
   endGame: () => void;
+  loseGame: () => void;
   setLoadedLevels: (levels: Level[]) => void;
   resetGame: () => void;
   collectObjective: (objectivePos: string) => void;
@@ -28,6 +30,7 @@ export function useGameState(): UseGameStateReturn {
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [gameWon, setGameWon] = useState(false);
+  const [gameLost, setGameLost] = useState(false);
   const [loadedLevels, setLoadedLevels] = useState<Level[] | null>(null);
   const [collectedObjectives, setCollectedObjectives] = useState<Set<string>>(new Set());
 
@@ -36,6 +39,7 @@ export function useGameState(): UseGameStateReturn {
       setCurrentLevel(levels[0]);
       setCurrentLevelIndex(0);
       setGameWon(false);
+      setGameLost(false);
       setGameStarted(true);
     }
   }, []);
@@ -54,11 +58,17 @@ export function useGameState(): UseGameStateReturn {
     setGameStarted(false);
   }, []);
 
+  const loseGame = useCallback(() => {
+    setGameLost(true);
+    setGameStarted(false);
+  }, []);
+
   const resetGame = useCallback(() => {
     setGameStarted(false);
     setCurrentLevel(null);
     setCurrentLevelIndex(0);
     setGameWon(false);
+    setGameLost(false);
     setCollectedObjectives(new Set());
   }, []);
 
@@ -83,11 +93,13 @@ export function useGameState(): UseGameStateReturn {
     currentLevel,
     currentLevelIndex,
     gameWon,
+    gameLost,
     loadedLevels,
     collectedObjectives,
     startGame,
     nextLevel,
     endGame,
+    loseGame,
     setLoadedLevels,
     resetGame,
     collectObjective,
