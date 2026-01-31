@@ -498,8 +498,18 @@ export function useGameEngine({
           // Check player collision with NPC (both are ~0.5 units in size, collision at ~0.65 units)
           const npcCollisionRadius = 0.65;
           if (distanceToPlayer < npcCollisionRadius && !isStaggered) {
-            // Check if player should steal back from thief with objective (even if escaping)
-            if (npc.isThief && npc.stolenObjective) {
+            let shouldApplyStagger = true;
+            let collisionHandled = false;
+
+            // Skip collision if thief is fleeing (immune to all interactions for 2 seconds)
+            if (npc.isThief && npc.state === 'fleeing') {
+              // No collision interactions - thief is in full escape mode
+              shouldApplyStagger = false;
+              collisionHandled = true;
+            }
+            
+            // Try to steal back objective from thief (any state except fleeing)
+            if (!collisionHandled && npc.isThief && npc.stolenObjective && npc.state !== 'fleeing') {
               // Steal back the objective
               collectedRef.current.add(npc.stolenObjective);
               onObjectiveCollectedRef.current(npc.stolenObjective);
@@ -513,7 +523,11 @@ export function useGameEngine({
               const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
               npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance * 1.5;
               npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance * 1.5;
-            } else if (npc.state !== 'staggered' && npc.state !== 'panic') {
+              collisionHandled = true;
+            }
+            
+            // Try to steal new objective (only if not already handled and not in restricted states)
+            if (!collisionHandled && npc.state !== 'staggered' && npc.state !== 'panic' && npc.state !== 'fleeing' && npc.state !== 'escaping') {
               if (npc.isThief && collectedRef.current.size > 0 && !npc.stolenObjective) {
                 // Pick a random collected objective to steal
                 const collectedObjectives = Array.from(collectedRef.current);
@@ -521,25 +535,29 @@ export function useGameEngine({
                 npc.stolenObjective = stolenObjectivePos;
                 collectedRef.current.delete(stolenObjectivePos);
                 onObjectiveLostRef.current(stolenObjectivePos);
-                // Immediately enter escaping state
-                changeNPCState(npc, 'escaping', currentTime, gridSize, playerRig.position);
+                // Immediately enter fleeing state (immune to all interactions for 2 seconds)
+                changeNPCState(npc, 'fleeing', currentTime, gridSize, playerRig.position);
               } else {
                 // Regular collision - NPC gets staggered
                 changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
                 npc.panicStartTime = currentTime;
               }
-              // Push NPC back (further if they have stolen objective)
+              // Push NPC back
               const dirX = npc.position.x - playerRig.position.x;
               const dirZ = npc.position.z - playerRig.position.z;
               const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
               const knockbackMultiplier = npc.stolenObjective ? 1.5 : 1; // 1.5x knockback for thieves with stolen objectives
               npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance * knockbackMultiplier;
               npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance * knockbackMultiplier;
+              collisionHandled = true;
             }
-            // Player enters stagger state
-            playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
-            staggerStateRef.current.isStaggered = true;
-            staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
+
+            // Player enters stagger state only if not fleeing
+            if (shouldApplyStagger) {
+              playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
+              staggerStateRef.current.isStaggered = true;
+              staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
+            }
           }
 
           // Check if NPC should transition to a new state
@@ -637,14 +655,28 @@ export function useGameEngine({
               break;
 
             case 'escaping':
-              // Move towards exit at faster speed (2x panic speed)
+              // Move towards exit at slightly faster speed (1.1x panic speed)
               if (endPos) {
                 const dirX = endPos.x - npc.position.x;
                 const dirZ = endPos.z - npc.position.z;
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
                 const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
-                // Escaping speed is 2x the panic speed
-                const moveDistance = defaultNPCConfig.panicSpeedPerMs * 2 * deltaTime * agilityMultiplier;
+                // Escaping speed is 1.1x the panic speed
+                const moveDistance = defaultNPCConfig.panicSpeedPerMs * 1.1 * deltaTime * agilityMultiplier;
+                npc.position.x += (dirX / length) * moveDistance;
+                npc.position.z += (dirZ / length) * moveDistance;
+              }
+              break;
+
+            case 'fleeing':
+              // Move towards exit at faster speed (1.5x panic speed), immune to collisions
+              if (endPos) {
+                const dirX = endPos.x - npc.position.x;
+                const dirZ = endPos.z - npc.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                // Fleeing speed is 1.5x the panic speed
+                const moveDistance = defaultNPCConfig.panicSpeedPerMs * 1.5 * deltaTime * agilityMultiplier;
                 npc.position.x += (dirX / length) * moveDistance;
                 npc.position.z += (dirZ / length) * moveDistance;
               }
