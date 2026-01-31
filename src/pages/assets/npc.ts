@@ -57,14 +57,14 @@ export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: Advance
   const stateRect = new Rectangle();
   const borderColor = "#ffffff55";
   stateRect.width = 0.15;
-  stateRect.height = '40px';
+  stateRect.height = '30px';
   stateRect.cornerRadius = 10;
   stateRect.color = borderColor;
   stateRect.thickness = 1;
   stateRect.background = 'rgba(0, 0, 0, 0.7)';
   textureRef.addControl(stateRect);
   stateRect.linkWithMesh(npc.mesh);
-  stateRect.linkOffsetY = -100;
+  stateRect.linkOffsetY = -150;
 
   // Create text block to show the state
   const label = new TextBlock();
@@ -79,8 +79,8 @@ export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: Advance
   const line = new Line();
   line.lineWidth = 2;
   line.color = borderColor;
-  line.y2 = 20;
-  line.linkOffsetY = 0;
+  line.y2 = 15;
+  line.linkOffsetY = -70;
   textureRef.addControl(line);
   line.linkWithMesh(npc.mesh);
   line.connectedControl = stateRect;
