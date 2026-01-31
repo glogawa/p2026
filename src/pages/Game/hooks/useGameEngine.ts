@@ -234,15 +234,15 @@ export function useGameEngine({
           const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
           // Keyboard movement
           if (inputMap['w']) {
-            box.position.x += Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
-            box.position.z += Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
-          }
-          if (inputMap['s']) {
             box.position.x -= Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
             box.position.z -= Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
           }
-          if (inputMap['a']) box.rotation.y += 0.1;
-          if (inputMap['d']) box.rotation.y -= 0.1;
+          if (inputMap['s']) {
+            box.position.x += Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
+            box.position.z += Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+          }
+          if (inputMap['a']) box.rotation.y -= 0.025;
+          if (inputMap['d']) box.rotation.y += 0.025;
           // Joystick movement
           box.position.x += joystickMovementRef.current.x * speedMultiplier;
           box.position.z += joystickMovementRef.current.z * speedMultiplier;
