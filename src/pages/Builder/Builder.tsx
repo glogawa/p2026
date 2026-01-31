@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonInput, IonLabel, IonItem, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonInput, IonLabel, IonItem, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonIcon, IonGrid, IonRow, IonCol, IonCardHeader, IonCardTitle } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
+import { clipboardOutline } from 'ionicons/icons';
 import ToggleLightDark from '../../components/utils/toggleLightDark';
 
 interface Level {
@@ -11,6 +12,7 @@ interface Level {
 const Builder: React.FC = () => {
   const [numLevels, setNumLevels] = useState<number>(1);
   const [levels, setLevels] = useState<Level[]>([{ id: 1, gridSize: 20 }]);
+  const [generatedCode, setGeneratedCode] = useState<string>('');
   const history = useHistory();
 
   const handleNumLevelsChange = (value: string) => {
@@ -29,10 +31,12 @@ const Builder: React.FC = () => {
   };
 
   const saveDesign = () => {
-    // For now, just log the design. Later, save to localStorage or pass to Game.
-    console.log('Level Design:', { numLevels, levels });
-    // Navigate back to home or game
-    history.push('/');
+    const code = `const levels = ${JSON.stringify(levels, null, 2)};`;
+    setGeneratedCode(code);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedCode);
   };
 
   return (
@@ -45,7 +49,6 @@ const Builder: React.FC = () => {
           </IonButtons>
           <IonButtons slot="end">
             <ToggleLightDark />
-            <IonButton onClick={() => history.push('/')}>Back</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -55,36 +58,68 @@ const Builder: React.FC = () => {
             <IonTitle size="large">Level Builder</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <div style={{ margin: '20px auto', maxWidth: '400px' }}>
-          <IonCard className="glass-card">
-            <IonCardContent>
-              <IonItem>
-                <IonLabel position="stacked">Number of Levels</IonLabel>
-                <IonInput
-                  type="number"
-                  value={numLevels}
-                  onIonChange={(e) => handleNumLevelsChange(e.detail.value!)}
-                  min="1"
-                />
-              </IonItem>
-              {levels.map((level) => (
-                <IonItem key={level.id}>
-                  <IonLabel position="stacked">Level {level.id} Grid Size</IonLabel>
-                  <IonInput
-                    type="number"
-                    value={level.gridSize}
-                    onIonChange={(e) => handleGridSizeChange(level.id, e.detail.value!)}
-                    min="5"
-                    max="100"
-                  />
-                </IonItem>
-              ))}
-              <IonButton className="glass-button" onClick={saveDesign} expand="block">
-                Save Design
-              </IonButton>
-            </IonCardContent>
-          </IonCard>
-        </div>
+        <IonGrid style={{ padding: '20px' }}>
+          <IonRow>
+            <IonCol size="12" sizeMd="8" offsetMd="2" sizeLg="6" offsetLg="3">
+              <IonCard className="glass-card">
+                <IonCardHeader>
+                  <IonCardTitle>Design Your Levels</IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <IonItem>
+                    <IonLabel position="stacked">Number of Levels</IonLabel>
+                    <IonInput
+                      type="number"
+                      value={numLevels}
+                      onIonChange={(e) => handleNumLevelsChange(e.detail.value!)}
+                      min="1"
+                    />
+                  </IonItem>
+                  {levels.map((level) => (
+                    <IonItem key={level.id}>
+                      <IonLabel position="stacked">Level {level.id} Grid Size</IonLabel>
+                      <IonInput
+                        type="number"
+                        value={level.gridSize}
+                        onIonChange={(e) => handleGridSizeChange(level.id, e.detail.value!)}
+                        min="5"
+                        max="100"
+                      />
+                    </IonItem>
+                  ))}
+                  <IonButton className="glass-button" onClick={saveDesign} expand="block" style={{ marginTop: '20px' }}>
+                    Save Design
+                  </IonButton>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+          </IonRow>
+          {generatedCode && (
+            <IonRow>
+              <IonCol size="12" sizeMd="8" offsetMd="2" sizeLg="6" offsetLg="3">
+                <IonCard className="glass-card">
+                  <IonCardHeader>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <IonCardTitle>Generated Code</IonCardTitle>
+                      <IonButton fill="clear" onClick={copyToClipboard}>
+                        <IonIcon icon={clipboardOutline} slot="start" />
+                        Copy
+                      </IonButton>
+                    </div>
+                  </IonCardHeader>
+                  <IonCardContent>
+                    <IonTextarea
+                      value={generatedCode}
+                      readonly
+                      rows={10}
+                      placeholder="Copy this code to use in Game.tsx"
+                    />
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
+            </IonRow>
+          )}
+        </IonGrid>
       </IonContent>
     </IonPage>
   );
