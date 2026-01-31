@@ -50,7 +50,6 @@ const Builder: React.FC = () => {
     const [selected, setSelected] = useState<{ levelId: number; pos: string } | null>(null);
     const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
-    const gridSize = 300;
 
     const handleNumLevelsChange = (value: string) => {
         const num = parseInt(value, 10) || 1;
@@ -93,7 +92,7 @@ const Builder: React.FC = () => {
         navigator.clipboard.writeText(generatedCode);
     };
 
-    const calculateMenuPosition = (cellX: number, cellY: number, displaySize: number, menuWidth: number = 120, menuHeight: number = 180) => {
+    const calculateMenuPosition = (cellX: number, cellY: number, displaySize: number, gridSize: number, menuWidth: number = 120, menuHeight: number = 180) => {
         const cellSize = gridSize / displaySize;
         const gridLeft = 0;
         const gridTop = 0;
@@ -141,7 +140,7 @@ const Builder: React.FC = () => {
                 </IonHeader>
                 <IonGrid style={{ padding: '20px' }}>
                     <IonRow>
-                        <IonCol size="12" sizeMd="8" offsetMd="2" sizeLg="6" offsetLg="3">
+                        <IonCol size="12" sizeMd="12" sizeLg="12">
                             <IonCard className="glass-card">
                                 <IonCardHeader>
                                     <IonCardTitle>Design Your Levels</IonCardTitle>
@@ -247,9 +246,9 @@ const Builder: React.FC = () => {
                                         </IonItem>
                                     </div>
                                     {levels.map((level) => {
-                                        const displaySize = Math.min(level.gridSize, 20);
+                                        const displaySize = level.gridSize;
                                         return (
-                                            <div key={level.id}>
+                                            <div key={level.id} style={{ width: '100%', aspectRatio: 1, marginBottom: '20px' }}>
                                                 <IonItem>
                                                     <IonLabel position="stacked">Level {level.id} Grid Size</IonLabel>
                                                     <IonInput
@@ -260,7 +259,7 @@ const Builder: React.FC = () => {
                                                         max="100"
                                                     />
                                                 </IonItem>
-                                                <div ref={gridRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: `${gridSize}px`, height: `${gridSize}px`, margin: '10px auto', backgroundColor: 'var(--glass-background)', padding: '5px', position: 'relative' }}>
+                                                <div ref={gridRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: '100%', height: '100%', margin: '0', backgroundColor: 'var(--glass-background)', padding: '5px', position: 'relative' }}>
                                                     {Array.from({ length: displaySize * displaySize }, (_, i) => {
                                                         const x = i % displaySize;
                                                         const y = Math.floor(i / displaySize);
@@ -278,7 +277,7 @@ const Builder: React.FC = () => {
                                                                 style={{ backgroundColor: bgColor, border: '1px solid var(--glass-border)', cursor: 'pointer' }}
                                                                 onClick={(e) => {
                                                                     setSelected({ levelId: level.id, pos });
-                                                                    const menuPosition = calculateMenuPosition(x, y, displaySize);
+                                                                    const menuPosition = calculateMenuPosition(x, y, displaySize, gridRef.current?.clientWidth || 300);
                                                                     setMenuPos({ x: menuPosition.x, y: menuPosition.y });
                                                                 }}
                                                             ></div>
@@ -313,7 +312,7 @@ const Builder: React.FC = () => {
                     </IonRow>
                     {generatedCode && (
                         <IonRow>
-                            <IonCol size="12" sizeMd="8" offsetMd="2" sizeLg="6" offsetLg="3">
+                            <IonCol size="12" sizeMd="12" sizeLg="12">
                                 <IonCard className="glass-card">
                                     <IonCardHeader>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
