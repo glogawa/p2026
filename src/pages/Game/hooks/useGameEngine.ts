@@ -486,7 +486,7 @@ export function useGameEngine({
         });
 
         // Check if reached end (only if all objectives are collected and no thieves escaped)
-        if (endPos && collectedRef.current.size === Object.keys(objectives).length) {
+        if (endPos && collectedRef.current.size >= Object.keys(objectives).length) {
           if (Vector3.Distance(playerRig.position, endPos) < 0.5) {
             onLevelCompleteRef.current();
           }
