@@ -230,8 +230,8 @@ export function useGameEngine({
             const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
             // Keyboard movement
             if (inputMap['w']) {
-              playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.1 * speedMultiplier;
-              playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.1 * speedMultiplier;
+              playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.2 * speedMultiplier;
+              playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.2 * speedMultiplier;
             }
             if (inputMap['s']) {
               playerRig.position.x += Math.sin(playerRig.rotation.y) * 0.1 * speedMultiplier;
