@@ -1,25 +1,34 @@
 import React, { useState, useRef } from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonInput, IonLabel, IonItem, IonButton, IonButtons, IonCard, IonCardContent, IonMenuToggle, IonTextarea, IonIcon, IonGrid, IonRow, IonCol, IonCardHeader, IonCardTitle } from '@ionic/react';
-import { useHistory } from 'react-router-dom';
 import { clipboardOutline, menuOutline } from 'ionicons/icons';
-import ToggleLightDark from '../../components/utils/toggleLightDark';
 import PageHeader from '../../components/PageHeader';
 
 interface Level {
     id: number;
     gridSize: number;
-    positions: { [key: string]: 'start' | 'end' | 'objective' | null };
+    positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
+}
+
+interface GeneralSettings {
+    fenceStaggerDurationMs: number;
+    fenceBounceDistance: number;
 }
 
 const defaultGridSize = 10;
+const defaultGeneralSettings: GeneralSettings = {
+    fenceStaggerDurationMs: 500,
+    fenceBounceDistance: 0.2,
+};
+
 const Builder: React.FC = () => {
     const [numLevels, setNumLevels] = useState<number>(1);
     const [levels, setLevels] = useState<Level[]>([{ id: 1, gridSize: defaultGridSize, positions: {} }]);
+    const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(defaultGeneralSettings);
     const [generatedCode, setGeneratedCode] = useState<string>('');
-    const history = useHistory();
     const [selected, setSelected] = useState<{ levelId: number; pos: string } | null>(null);
     const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
+    const gridSize = 300;
 
     const handleNumLevelsChange = (value: string) => {
         const num = parseInt(value, 10) || 1;
@@ -37,7 +46,7 @@ const Builder: React.FC = () => {
         setLevels(levels.map(level => level.id === id ? { ...level, gridSize: size } : level));
     };
 
-    const setPositionType = (levelId: number, pos: string, type: 'start' | 'end' | 'objective' | null) => {
+    const setPositionType = (levelId: number, pos: string, type: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null) => {
         setLevels(levels.map(level =>
             level.id === levelId
                 ? { ...level, positions: { ...level.positions, [pos]: type } }
@@ -50,12 +59,53 @@ const Builder: React.FC = () => {
             ...level,
             positions: Object.fromEntries(Object.entries(level.positions).filter(([_, v]) => v !== null))
         }));
-        const code = JSON.stringify(cleanedLevels, null, 2);
+        const output = {
+            general: generalSettings,
+            locations: cleanedLevels,
+        };
+        const code = JSON.stringify(output, null, 2);
         setGeneratedCode(code);
     };
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(generatedCode);
+    };
+
+    const calculateMenuPosition = (cellX: number, cellY: number, displaySize: number, menuWidth: number = 120, menuHeight: number = 180) => {
+        const cellSize = gridSize / displaySize;
+        const gridLeft = 0;
+        const gridTop = 0;
+        const gridRight = gridSize;
+        const gridBottom = gridSize;
+        const padding = 10;
+
+        let left = cellX * cellSize + 5;
+        let top = (cellY + 1) * cellSize + 5;
+        let align: 'left' | 'right' | 'bottom' | 'top' = 'left';
+
+        // Check if menu would go off right edge
+        if (left + menuWidth + padding > gridRight) {
+            left = cellX * cellSize - menuWidth - 5;
+            align = 'right';
+        }
+
+        // Check if menu would go off bottom edge
+        if (top + menuHeight + padding > gridBottom) {
+            top = cellY * cellSize - menuHeight - 5;
+            align = 'top';
+        }
+
+        // Ensure menu doesn't go off left edge
+        if (left < 0) {
+            left = padding;
+        }
+
+        // Ensure menu doesn't go off top edge
+        if (top < 0) {
+            top = padding;
+        }
+
+        return { x: left, y: top, align };
     };
 
     return (
@@ -84,6 +134,30 @@ const Builder: React.FC = () => {
                                             min="1"
                                         />
                                     </IonItem>
+                                    <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '5px' }}>
+                                        <h4 style={{ margin: '0 0 15px 0', color: 'var(--ion-text-color)' }}>Fence Settings</h4>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Stagger Duration (ms)</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.fenceStaggerDurationMs}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, fenceStaggerDurationMs: parseInt(e.detail.value!) || 500 })}
+                                                min="100"
+                                                max="2000"
+                                            />
+                                        </IonItem>
+                                        <IonItem>
+                                            <IonLabel position="stacked">Bounce Distance</IonLabel>
+                                            <IonInput
+                                                type="number"
+                                                value={generalSettings.fenceBounceDistance}
+                                                onIonChange={(e) => setGeneralSettings({ ...generalSettings, fenceBounceDistance: parseFloat(e.detail.value!) || 0.2 })}
+                                                min="0.1"
+                                                max="2"
+                                                step="0.1"
+                                            />
+                                        </IonItem>
+                                    </div>
                                     {levels.map((level) => {
                                         const displaySize = Math.min(level.gridSize, 20);
                                         return (
@@ -98,7 +172,7 @@ const Builder: React.FC = () => {
                                                         max="100"
                                                     />
                                                 </IonItem>
-                                                <div ref={gridRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: '300px', height: '300px', margin: '10px auto', backgroundColor: 'var(--glass-background)', padding: '5px', position: 'relative' }}>
+                                                <div ref={gridRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${displaySize}, 1fr)`, gap: '0px', width: `${gridSize}px`, height: `${gridSize}px`, margin: '10px auto', backgroundColor: 'var(--glass-background)', padding: '5px', position: 'relative' }}>
                                                     {Array.from({ length: displaySize * displaySize }, (_, i) => {
                                                         const x = i % displaySize;
                                                         const y = Math.floor(i / displaySize);
@@ -106,20 +180,18 @@ const Builder: React.FC = () => {
                                                         const type = level.positions[pos];
                                                         let bgColor = '#555';
                                                         if (type === 'start') bgColor = 'rgba(255,0,0,0.5)';
-                                                        else if (type === 'objective') bgColor = 'rgba(0,255,0,0.5)';
-                                                        else if (type === 'end') bgColor = 'rgba(0,0,255,0.5)';
+                                                        else if (type === 'objective') bgColor = 'rgba(0,0,255,0.5)';
+                                                        else if (type === 'end') bgColor = 'rgba(0,255,0,0.5)';
+                                                        else if (type === 'fence') bgColor = 'rgb(0, 0, 0)';
+                                                        else if (type === 'npc') bgColor = 'rgba(255,165,0,0.6)';
                                                         return (
                                                             <div
                                                                 key={i}
                                                                 style={{ backgroundColor: bgColor, border: '1px solid var(--glass-border)', cursor: 'pointer' }}
                                                                 onClick={(e) => {
                                                                     setSelected({ levelId: level.id, pos });
-                                                                    if (gridRef.current) {
-                                                                        const cellSize = 300 / displaySize;
-                                                                        const menuX = x * cellSize + 5;
-                                                                        const menuY = (y + 1) * cellSize + 5;
-                                                                        setMenuPos({ x: menuX, y: menuY });
-                                                                    }
+                                                                    const menuPosition = calculateMenuPosition(x, y, displaySize);
+                                                                    setMenuPos({ x: menuPosition.x, y: menuPosition.y });
                                                                 }}
                                                             ></div>
                                                         );
@@ -133,6 +205,8 @@ const Builder: React.FC = () => {
                                                                     <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'start'); setSelected(null); setMenuPos(null); }}>Start</IonButton>
                                                                     <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'objective'); setSelected(null); setMenuPos(null); }}>Objective</IonButton>
                                                                     <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'end'); setSelected(null); setMenuPos(null); }}>End</IonButton>
+                                                                    <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'fence'); setSelected(null); setMenuPos(null); }}>Fence</IonButton>
+                                                                    <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, 'npc'); setSelected(null); setMenuPos(null); }}>NPC</IonButton>
                                                                     <IonButton fill="clear" onClick={() => { setPositionType(level.id, selected.pos, null); setSelected(null); setMenuPos(null); }}>Clear</IonButton>
                                                                 </IonButtons>
                                                             </div>

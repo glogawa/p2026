@@ -7,16 +7,26 @@ import { WinScreen } from './components/WinScreen';
 import { LevelLoader } from './components/LevelLoader';
 import { StartScreen } from './components/StartScreen';
 import PageHeader from '../../components/PageHeader';
+import { generateRandomLevels } from './utils/generateRandomLevel';
 import './Game.css';
 
 interface Level {
   id: number;
   gridSize: number;
-  positions: { [key: string]: 'start' | 'end' | 'objective' | null };
+  positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
+}
+
+interface LevelData {
+  general: {
+    fenceStaggerDurationMs: number;
+    fenceBounceDistance: number;
+  };
+  locations: Level[];
 }
 
 const Game: React.FC = () => {
   const [pastedJson, setPastedJson] = useState<string>('');
+  const [fenceConfig, setFenceConfig] = useState({ staggerDuration: 500, bounceDistance: 0.2 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -64,8 +74,17 @@ const Game: React.FC = () => {
 
   const loadLevels = () => {
     try {
-      const levels: Level[] = JSON.parse(pastedJson);
-      setLoadedLevels(levels);
+      const data: LevelData = JSON.parse(pastedJson);
+      // Handle both old format (array) and new format (object with general + locations)
+      if (Array.isArray(data)) {
+        setLoadedLevels(data as Level[]);
+      } else if (data.locations && data.general) {
+        setFenceConfig({
+          staggerDuration: data.general.fenceStaggerDurationMs,
+          bounceDistance: data.general.fenceBounceDistance,
+        });
+        setLoadedLevels(data.locations);
+      }
     } catch (e) {
       alert('Invalid JSON. Please paste valid levels JSON.');
     }
@@ -74,12 +93,22 @@ const Game: React.FC = () => {
   const handleStartGame = () => {
     if (loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
+    } else {
+      // Generate random levels if none are loaded
+      const randomLevels = generateRandomLevels();
+      setLoadedLevels(randomLevels);
+      startGame(randomLevels);
     }
   };
 
   const handlePlayAgain = () => {
     if (loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
+    } else {
+      // Generate random levels if none are loaded
+      const randomLevels = generateRandomLevels();
+      setLoadedLevels(randomLevels);
+      startGame(randomLevels);
     }
   };
 

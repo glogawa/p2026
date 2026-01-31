@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 interface Level {
   id: number;
   gridSize: number;
-  positions: { [key: string]: 'start' | 'end' | 'objective' | null };
+  positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
 }
 
 interface UseGameStateReturn {
