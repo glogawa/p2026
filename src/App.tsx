@@ -114,7 +114,7 @@ const App: React.FC = () => {
           <Menu />
           <IonRouterOutlet id="main-content">
             <Route exact path="/home">
-              <Home />
+            <Redirect to="/" />
             </Route>
             <Route exact path="/game">
               <Game />
@@ -123,7 +123,7 @@ const App: React.FC = () => {
               <Builder />
             </Route>
             <Route exact path="/">
-              <Redirect to="/home" />
+              <Home />
             </Route>
           </IonRouterOutlet>
         </IonReactRouter>
