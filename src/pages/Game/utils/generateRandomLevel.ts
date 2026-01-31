@@ -35,6 +35,22 @@ function getRandomPosition(gridSize: number, excludePositions: Set<string>): str
   return pos;
 }
 
+function getRandomEdgePosition(gridSize: number, excludePositions: Set<string>): string {
+  let x, y, pos;
+  do {
+    const isVerticalEdge = Math.random() < 0.5;
+    if (isVerticalEdge) {
+      x = Math.random() < 0.5 ? 0 : gridSize - 1;
+      y = Math.floor(Math.random() * gridSize);
+    } else {
+      y = Math.random() < 0.5 ? 0 : gridSize - 1;
+      x = Math.floor(Math.random() * gridSize);
+    }
+    pos = `${x},${y}`;
+  } while (excludePositions.has(pos));
+  return pos;
+}
+
 function generateRandomPlayerStats(): PlayerStats {
   // Randomize player stamina between 8 and 12
   const stamina = Math.floor(Math.random() * 5) + 8; // 8-12
@@ -69,12 +85,12 @@ export function generateRandomLevel(id: number = 1): Level {
   const usedPositions = new Set<string>();
 
   // Generate start position
-  const startPos = getRandomPosition(gridSize, usedPositions);
+  const startPos = getRandomEdgePosition(gridSize, usedPositions);
   positions[startPos] = 'start';
   usedPositions.add(startPos);
 
   // Generate end position
-  const endPos = getRandomPosition(gridSize, usedPositions);
+  const endPos = getRandomEdgePosition(gridSize, usedPositions);
   positions[endPos] = 'end';
   usedPositions.add(endPos);
 
