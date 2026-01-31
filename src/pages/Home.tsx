@@ -1,4 +1,4 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons, IonCard, IonCardContent } from '@ionic/react';
 import { useState, useEffect, useRef } from 'react';
 import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3 } from '@babylonjs/core';
 import { createGround } from './assets/ground';
@@ -62,8 +62,13 @@ const Home: React.FC = () => {
             <IonTitle size="large">Game</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <IonButton onClick={startGame}>Start Game</IonButton>
+        <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+          <IonCard>
+            <IonCardContent>
+              <p>The game is about wearing a mask to blend with crowds and find the exit. Movement is WASD.</p>
+              <IonButton onClick={startGame}>Start Game</IonButton>
+            </IonCardContent>
+          </IonCard>
         </div>
       </IonContent>
     </IonPage>
