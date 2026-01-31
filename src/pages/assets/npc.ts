@@ -13,11 +13,11 @@ export interface NPCConfig {
 export const defaultNPCConfig: NPCConfig = {
   thinkingDurationMs: 3000, // 3 seconds thinking
   socializingDurationMs: 2000, // 2 seconds socializing
-  wanderingSpeedPerMs: 0.02, // 0.02 units per ms
-  socializingSpeedPerMs: 0.015, // 0.015 units per ms
+  wanderingSpeedPerMs: 0.0005, // 0.5 units per second
+  socializingSpeedPerMs: 0.0003, // 0.3 units per second
   staggerDurationMs: 500, // 500ms stagger
   staggerBounceDistance: 0.3, // 0.3 units bounce
-  panicSpeedPerMs: 0.04, // 0.04 units per ms (faster)
+  panicSpeedPerMs: 0.001, // 1.0 units per second (panic is only slightly faster)
 };
 
 export type NPCState = 'thinking' | 'socializing' | 'wandering' | 'staggered' | 'panic';

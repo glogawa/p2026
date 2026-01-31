@@ -1,11 +1,9 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton } from '@ionic/react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
-import { WinScreen } from './components/WinScreen';
-import { LevelLoader } from './components/LevelLoader';
-import { StartScreen } from './components/StartScreen';
+import { WinScreen, StartScreen, LevelLoader, FpsCounter } from './ui';
 import PageHeader from '../../components/PageHeader';
 import { generateRandomLevels } from './utils/generateRandomLevel';
 import './Game.css';
@@ -27,9 +25,11 @@ interface LevelData {
 const Game: React.FC = () => {
   const [pastedJson, setPastedJson] = useState<string>('');
   const [fenceConfig, setFenceConfig] = useState({ staggerDuration: 500, bounceDistance: 0.2 });
+  const [fps, setFps] = useState<number>(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
+  const fpsCounterRef = useRef({ frameCount: 0, lastTime: performance.now() });
 
   // Use modular hooks
   const gameState = useGameState();
@@ -46,6 +46,35 @@ const Game: React.FC = () => {
     collectObjective,
     resetCollectedObjectives,
   } = gameState;
+
+  // Setup FPS counter
+  useEffect(() => {
+    const fpsInterval = setInterval(() => {
+      const now = performance.now();
+      const deltaTime = now - fpsCounterRef.current.lastTime;
+      if (deltaTime > 0) {
+        const calculatedFps = Math.round((fpsCounterRef.current.frameCount * 1000) / deltaTime);
+        setFps(calculatedFps);
+        fpsCounterRef.current.frameCount = 0;
+        fpsCounterRef.current.lastTime = now;
+      }
+    }, 1000); // Update every second
+
+    return () => clearInterval(fpsInterval);
+  }, []);
+
+  // Increment frame counter on each animation frame
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const frameCounter = () => {
+      fpsCounterRef.current.frameCount++;
+      requestAnimationFrame(frameCounter);
+    };
+
+    const animationId = requestAnimationFrame(frameCounter);
+    return () => cancelAnimationFrame(animationId);
+  }, [gameStarted]);
 
   // Setup joystick
   useGameJoystick({
@@ -122,6 +151,7 @@ const Game: React.FC = () => {
         <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0 }}>
           <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+            <FpsCounter fps={fps} />
           </div>
         </IonContent>
       </IonPage>
