@@ -433,9 +433,24 @@ export function useGameEngine({
             }
             if (inputMap['a'] || inputMap['arrowleft']) playerRig.rotation.y -= 0.025;
             if (inputMap['d'] || inputMap['arrowright']) playerRig.rotation.y += 0.025;
-            // Joystick movement
-            playerRig.position.x += joystickMovementRef.current.x * speedMultiplier;
-            playerRig.position.z += joystickMovementRef.current.z * speedMultiplier;
+            
+            // Joystick movement (x = rotation, z = forward/backward like WASD)
+            const joystickX = joystickMovementRef.current.x;
+            const joystickZ = joystickMovementRef.current.z;
+            
+            // Apply rotation from joystick X input
+            playerRig.rotation.y += joystickX * 0.025;
+            
+            // Apply forward/backward movement from joystick Z input (like W/S)
+            if (joystickZ > 0) {
+              // Forward (like W)
+              playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.2 * joystickZ * speedMultiplier;
+              playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.2 * joystickZ * speedMultiplier;
+            } else if (joystickZ < 0) {
+              // Backward (like S)
+              playerRig.position.x += Math.sin(playerRig.rotation.y) * 0.1 * Math.abs(joystickZ) * speedMultiplier;
+              playerRig.position.z += Math.cos(playerRig.rotation.y) * 0.1 * Math.abs(joystickZ) * speedMultiplier;
+            }
           }
 
         // Check fence collisions (fence is 1x1 box, so collision radius is ~0.7 from center to corner)

@@ -22,7 +22,7 @@ export function useGameJoystick({
   enabled = true,
 }: UseGameJoystickOptions) {
   const joystickManagerRef = useRef<JoystickManager | null>(null);
-  const movementRef = useRef({ x: 0, z: 0 });
+  const joystickStateRef = useRef({ x: 0, y: 0, active: false });
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -45,26 +45,31 @@ export function useGameJoystick({
     manager.on('move', (evt, data) => {
       if (!data.vector) return;
 
-      const moveSpeed = 0.1; // Units per frame
       const force = Math.min(data.force, 1); // Clamp to max 1
 
-      // Map joystick coordinates to game world
-      // Joystick Y-up = Game Z-forward
-      // Joystick X-right = Game X-right
-      movementRef.current.x = data.vector.x * moveSpeed * force;
-      movementRef.current.z = data.vector.y * moveSpeed * force;
+      // Store joystick input as x (rotate) and y (forward/backward)
+      // Joystick X-right = rotation
+      // Joystick Y-up = forward movement
+      joystickStateRef.current.x = data.vector.x * force; // rotation
+      joystickStateRef.current.y = data.vector.y * force; // forward/backward
+      joystickStateRef.current.active = true;
     });
 
     // Handle joystick end (reset movement)
     manager.on('end', () => {
-      movementRef.current.x = 0;
-      movementRef.current.z = 0;
+      joystickStateRef.current.x = 0;
+      joystickStateRef.current.y = 0;
+      joystickStateRef.current.active = false;
     });
 
     // Animation loop for smooth movement
     const updateMovement = () => {
-      if (movementRef.current.x !== 0 || movementRef.current.z !== 0) {
-        onMove(movementRef.current.x, movementRef.current.z);
+      if (joystickStateRef.current.active) {
+        // Send both x (rotation) and y (forward/backward) to emulate WASD behavior
+        onMove(joystickStateRef.current.x, joystickStateRef.current.y);
+      } else {
+        // Send zeros when not active
+        onMove(0, 0);
       }
       animationFrameRef.current = requestAnimationFrame(updateMovement);
     };
@@ -81,7 +86,7 @@ export function useGameJoystick({
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      movementRef.current = { x: 0, z: 0 };
+      joystickStateRef.current = { x: 0, y: 0, active: false };
     };
   }, [isGameActive, enabled, containerRef, onMove]);
 
