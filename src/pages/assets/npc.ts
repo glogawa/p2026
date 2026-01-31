@@ -1,4 +1,5 @@
 import { Scene, MeshBuilder, Color3, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { AdvancedDynamicTexture, Rectangle, TextBlock, Line, Ellipse } from '@babylonjs/gui';
 
 export interface NPCConfig {
   thinkingDurationMs: number; // How long NPCs stand still
@@ -31,6 +32,10 @@ export interface NPCInstance {
   targetNPC?: NPCInstance;
   panicStartTime?: number;
   lastStateChangeTime?: number;
+  guiLabel?: TextBlock;
+  guiRect?: Rectangle;
+  guiTarget?: Ellipse;
+  guiLine?: Line;
 }
 
 export function createNPC(scene: Scene, position: Vector3): any {
@@ -44,6 +49,70 @@ export function createNPC(scene: Scene, position: Vector3): any {
   npc.material = material;
 
   return npc;
+}
+
+export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: AdvancedDynamicTexture): void {
+  // Create a rectangle to display the state
+  const stateRect = new Rectangle();
+  stateRect.width = 0.15;
+  stateRect.height = '40px';
+  stateRect.cornerRadius = 10;
+  stateRect.color = 'grey';
+  stateRect.thickness = 1;
+  stateRect.background = 'rgba(0, 0, 0, 0.7)';
+  textureRef.addControl(stateRect);
+  stateRect.linkWithMesh(npc.mesh);
+  stateRect.linkOffsetY = -100;
+
+  // Create text block to show the state
+  const label = new TextBlock();
+  label.text = npc.state.toUpperCase();
+  label.fontSize = 14;
+  label.fontFamily = 'Arial, sans-serif';
+  label.color = 'white';
+  label.fontWeight = 'bold';
+  stateRect.addControl(label);
+
+  // Create a line connecting to the state label
+  const line = new Line();
+  line.lineWidth = 2;
+  line.color = 'grey';
+  line.y2 = 20;
+  line.linkOffsetY = 0;
+  textureRef.addControl(line);
+  line.linkWithMesh(npc.mesh);
+  line.connectedControl = stateRect;
+
+  // Store GUI elements in the NPC instance for later updates
+  npc.guiLabel = label;
+  npc.guiRect = stateRect;
+  npc.guiLine = line;
+}
+
+export function updateNPCGUILabel(npc: NPCInstance, newState: NPCState): void {
+  // Update the state label text
+  if (npc.guiLabel) {
+    npc.guiLabel.text = newState.toUpperCase();
+    
+    // Change color based on state
+    switch (newState) {
+      case 'thinking':
+        npc.guiLabel.color = 'white';
+        break;
+      case 'socializing':
+        npc.guiLabel.color = 'lightblue';
+        break;
+      case 'wandering':
+        npc.guiLabel.color = 'lightgreen';
+        break;
+      case 'staggered':
+        npc.guiLabel.color = 'red';
+        break;
+      case 'panic':
+        npc.guiLabel.color = 'darkorange';
+        break;
+    }
+  }
 }
 
 export function getRandomPositionInGrid(gridSize: number, minDistance: number = 0): Vector3 {
@@ -104,6 +173,9 @@ export function changeNPCState(npc: NPCInstance, newState: NPCState, now: number
   npc.lastStateChangeTime = now;
   npc.targetPosition = undefined;
   npc.targetNPC = undefined;
+
+  // Update GUI label to reflect the new state
+  updateNPCGUILabel(npc, newState);
 
   if (newState === 'panic') {
     npc.panicStartTime = now;

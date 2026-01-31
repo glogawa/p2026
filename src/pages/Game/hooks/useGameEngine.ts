@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Engine, Scene, Vector3, MeshBuilder, KeyboardEventTypes, Color3, StandardMaterial } from '@babylonjs/core';
+import { AdvancedDynamicTexture } from '@babylonjs/gui';
 import { createGround } from '../../assets/ground';
 import { createCamera } from '../../assets/camera';
 import { createLight } from '../../assets/light';
 import { createFence, defaultFenceConfig, FenceConfig } from '../../assets/fence';
-import { createNPC, defaultNPCConfig, NPCInstance, NPCState, changeNPCState, findNearestNPC, getRandomPositionInGrid, getNextNPCState, getRandomAdjacentPosition } from '../../assets/npc';
+import { createNPC, defaultNPCConfig, NPCInstance, NPCState, changeNPCState, findNearestNPC, getRandomPositionInGrid, getNextNPCState, getRandomAdjacentPosition, attachNPCGUI, updateNPCGUILabel } from '../../assets/npc';
 
 interface UseGameEngineOptions {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -115,6 +116,9 @@ export function useGameEngine({
 
     // Create NPCs
     const now = performance.now();
+    // Create GUI texture for NPC labels
+    const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("NPCLabelsUI");
+    
     Object.entries(currentLevel.positions).forEach(([pos, type]) => {
       if (type === 'npc') {
         const [x, y] = pos.split(',').map(Number);
@@ -128,6 +132,9 @@ export function useGameEngine({
           stateStartTime: now,
         };
         npcsRef.current.push(npcInstance);
+        
+        // Attach GUI label to NPC
+        attachNPCGUI(npcInstance, scene, guiTexture);
       }
     });
 
