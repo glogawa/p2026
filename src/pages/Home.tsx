@@ -1,7 +1,9 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonButtons } from '@ionic/react';
 import { useState, useEffect, useRef } from 'react';
-import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, Color3 } from '@babylonjs/core';
-import { GridMaterial } from '@babylonjs/materials/grid';
+import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3 } from '@babylonjs/core';
+import { createGround } from './assets/ground';
+import { createCamera } from './assets/camera';
+import { createLight } from './assets/light';
 import ExploreContainer from '../components/ExploreContainer';
 import './Home.css';
 
@@ -15,15 +17,9 @@ const Home: React.FC = () => {
     if (gameStarted && canvasRef.current) {
       const engine = new Engine(canvasRef.current, true);
       const scene = new Scene(engine);
-      const camera = new ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 3, new Vector3(0, 0, 0), scene);
-      camera.attachControl(canvasRef.current, true);
-      const light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
-      const plane = MeshBuilder.CreateGround("ground", { width: GRID_SIZE, height: GRID_SIZE }, scene);
-      const gridMaterial = new GridMaterial("grid", scene);
-      gridMaterial.gridRatio = 1;
-      gridMaterial.mainColor = new Color3(1, 1, 1);
-      gridMaterial.lineColor = new Color3(0, 0, 0);
-      plane.material = gridMaterial;
+      const camera = createCamera(scene, canvasRef.current);
+      const light = createLight(scene);
+      createGround(scene, GRID_SIZE);
       engine.runRenderLoop(() => {
         scene.render();
       });
