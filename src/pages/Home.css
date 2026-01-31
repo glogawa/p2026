@@ -172,11 +172,15 @@
   font-size: 14px;
   height: 48px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
 }
 
 .info-card ion-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(56, 128, 255, 0.3);
+  backdrop-filter: none !important;
 }
 
 .link-button {
@@ -185,6 +189,7 @@
   border-radius: 10px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  backdrop-filter: none !important;
 }
 
 /* Credits Section */
