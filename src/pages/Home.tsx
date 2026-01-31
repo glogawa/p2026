@@ -63,10 +63,10 @@ const Home: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         <div style={{ margin: '20px auto', maxWidth: '400px' }}>
-          <IonCard>
+          <IonCard className="glass-card">
             <IonCardContent>
               <p>The game is about wearing a mask to blend with crowds and find the exit. Movement is WASD.</p>
-              <IonButton onClick={startGame}>Start Game</IonButton>
+              <IonButton className="glass-button" onClick={startGame}>Start Game</IonButton>
             </IonCardContent>
           </IonCard>
         </div>
