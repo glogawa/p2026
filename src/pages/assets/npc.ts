@@ -234,6 +234,7 @@ export function changeNPCState(npc: NPCInstance, newState: NPCState, now: number
 
 export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: number): NPCState | null {
   const timeSinceStateChange = now - npc.stateStartTime;
+  const staminaMultiplier = npc.stamina ? npc.stamina / 5 : 1; // Lower stamina means quicker changes
   
   const stayProbabilities: Record<NPCState, number> = {
     thinking: 0,
@@ -246,7 +247,7 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
   switch (npc.state) {
     case 'thinking': {
       // Random chance to transition out of thinking
-      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs) {
+      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs / staminaMultiplier) {
         // 60% chance to wander, 40% chance to socialize
         return Math.random() > 0.4 ? 'wandering' : 'socializing';
       }
@@ -254,7 +255,7 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'socializing': {
-      if (timeSinceStateChange > defaultNPCConfig.socializingDurationMs) {
+      if (timeSinceStateChange > defaultNPCConfig.socializingDurationMs / staminaMultiplier) {
         if (Math.random() < stayProbabilities.socializing) {
           return 'socializing';
         } else {
@@ -265,7 +266,7 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'wandering': {
-      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs * 0.8) {
+      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs * 0.8 / staminaMultiplier) {
         if (Math.random() < stayProbabilities.wandering) {
           return 'wandering';
         } else {
@@ -277,7 +278,7 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'staggered': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs) {
+      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs / staminaMultiplier) {
         if (Math.random() < stayProbabilities.staggered) {
           return 'staggered';
         } else {
@@ -288,7 +289,7 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'panic': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs * 3) {
+      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs * 3 / staminaMultiplier) {
         if (Math.random() < stayProbabilities.panic) {
           return 'panic';
         } else {

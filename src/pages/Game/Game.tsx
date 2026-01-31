@@ -126,6 +126,7 @@ const Game: React.FC = () => {
     fenceConfig: { staggerDuration: fenceConfig.staggerDuration, bounceDistance: fenceConfig.bounceDistance },
     showNPCGui,
     npcStats,
+    playerStats,
   });
 
   const totalObjectives = currentLevel ? Object.values(currentLevel.positions).filter(pos => pos === 'objective').length : 0;

@@ -18,6 +18,7 @@ interface UseGameEngineOptions {
   fenceConfig?: FenceConfig;
   showNPCGui?: boolean;
   npcStats?: NPCStatsConfig;
+  playerStats?: { stamina: number; agility: number };
 }
 
 export function useGameEngine({
@@ -31,6 +32,7 @@ export function useGameEngine({
   fenceConfig = defaultFenceConfig,
   showNPCGui = true,
   npcStats,
+  playerStats,
 }: UseGameEngineOptions) {
   const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
   const collectedRef = useRef(collectedObjectives);
@@ -177,7 +179,7 @@ export function useGameEngine({
           mesh: npcMesh,
           position: new Vector3(worldX, 0.5, worldZ),
           state: 'thinking',
-          stateStartTime: now,
+          stateStartTime: 0, // Set to 0 so it immediately starts changing state
           stamina: npcStats_data.stamina,
           agility: npcStats_data.agility,
         };
@@ -223,14 +225,15 @@ export function useGameEngine({
 
         // Only allow movement if not staggered
         if (!isStaggered) {
+          const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
           // Keyboard movement
-          if (inputMap['w']) box.position.z += 0.1;
-          if (inputMap['s']) box.position.z -= 0.1;
-          if (inputMap['a']) box.position.x -= 0.1;
-          if (inputMap['d']) box.position.x += 0.1;
+          if (inputMap['w']) box.position.z += 0.1 * speedMultiplier;
+          if (inputMap['s']) box.position.z -= 0.1 * speedMultiplier;
+          if (inputMap['a']) box.position.x -= 0.1 * speedMultiplier;
+          if (inputMap['d']) box.position.x += 0.1 * speedMultiplier;
           // Joystick movement
-          box.position.x += joystickMovementRef.current.x;
-          box.position.z += joystickMovementRef.current.z;
+          box.position.x += joystickMovementRef.current.x * speedMultiplier;
+          box.position.z += joystickMovementRef.current.z * speedMultiplier;
         }
 
         // Check fence collisions
@@ -321,7 +324,8 @@ export function useGameEngine({
                   const dirX = npc.targetNPC.position.x - npc.position.x;
                   const dirZ = npc.targetNPC.position.z - npc.position.z;
                   const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-                  const moveDistance = defaultNPCConfig.socializingSpeedPerMs * deltaTime;
+                  const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                  const moveDistance = defaultNPCConfig.socializingSpeedPerMs * deltaTime * agilityMultiplier;
                   npc.position.x += (dirX / length) * moveDistance;
                   npc.position.z += (dirZ / length) * moveDistance;
                 }
@@ -342,7 +346,8 @@ export function useGameEngine({
                   const dirX = npc.targetPosition.x - npc.position.x;
                   const dirZ = npc.targetPosition.z - npc.position.z;
                   const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-                  const moveDistance = defaultNPCConfig.socializingSpeedPerMs * deltaTime;
+                  const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                  const moveDistance = defaultNPCConfig.socializingSpeedPerMs * deltaTime * agilityMultiplier;
                   npc.position.x += (dirX / length) * moveDistance;
                   npc.position.z += (dirZ / length) * moveDistance;
                 } else {
@@ -362,7 +367,8 @@ export function useGameEngine({
                   const dirX = npc.targetPosition.x - npc.position.x;
                   const dirZ = npc.targetPosition.z - npc.position.z;
                   const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-                  const moveDistance = defaultNPCConfig.wanderingSpeedPerMs * deltaTime;
+                  const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                  const moveDistance = defaultNPCConfig.wanderingSpeedPerMs * deltaTime * agilityMultiplier;
                   npc.position.x += (dirX / length) * moveDistance;
                   npc.position.z += (dirZ / length) * moveDistance;
                 } else {
@@ -385,7 +391,8 @@ export function useGameEngine({
                 const dirX = npc.targetPosition.x - npc.position.x;
                 const dirZ = npc.targetPosition.z - npc.position.z;
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-                const moveDistance = defaultNPCConfig.panicSpeedPerMs * deltaTime;
+                const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                const moveDistance = defaultNPCConfig.panicSpeedPerMs * deltaTime * agilityMultiplier;
                 npc.position.x += (dirX / length) * moveDistance;
                 npc.position.z += (dirZ / length) * moveDistance;
               }
