@@ -49,6 +49,7 @@ export function useGameEngine({
   const startMeshesRef = useRef<any[]>([]);
   const exitMeshesRef = useRef<any[]>([]);
   const playerBoxRef = useRef<any>(null);
+  const cameraRef = useRef<any>(null);
   const joystickMovementRef = useRef(joystickMovement);
 
   // Update the refs when callbacks change
@@ -86,7 +87,8 @@ export function useGameEngine({
     engine.enableOfflineSupport = false;
     
     const scene = new Scene(engine);
-    createCamera(scene, canvasRef.current);
+    const camera = createCamera(scene, canvasRef.current);
+    cameraRef.current = camera;
     createLight(scene);
     const gridSize = currentLevel.gridSize;
     const { objectiveTiles, groundPlane, groundMaterial, startMeshes, exitMeshes } = createGround(scene, gridSize, currentLevel.positions, collectedRef.current);
@@ -118,6 +120,10 @@ export function useGameEngine({
       box.material = playerMaterial;
       box.playerMaterial = playerMaterial;
       playerBoxRef.current = box;
+      // Set camera to follow the player
+      if (cameraRef.current) {
+        cameraRef.current.lockedTarget = box;
+      }
     }
 
     // Find objectives
@@ -227,10 +233,16 @@ export function useGameEngine({
         if (!isStaggered) {
           const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
           // Keyboard movement
-          if (inputMap['w']) box.position.z += 0.1 * speedMultiplier;
-          if (inputMap['s']) box.position.z -= 0.1 * speedMultiplier;
-          if (inputMap['a']) box.position.x -= 0.1 * speedMultiplier;
-          if (inputMap['d']) box.position.x += 0.1 * speedMultiplier;
+          if (inputMap['w']) {
+            box.position.x += Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
+            box.position.z += Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+          }
+          if (inputMap['s']) {
+            box.position.x -= Math.sin(box.rotation.y) * 0.1 * speedMultiplier;
+            box.position.z -= Math.cos(box.rotation.y) * 0.1 * speedMultiplier;
+          }
+          if (inputMap['a']) box.rotation.y += 0.1;
+          if (inputMap['d']) box.rotation.y -= 0.1;
           // Joystick movement
           box.position.x += joystickMovementRef.current.x * speedMultiplier;
           box.position.z += joystickMovementRef.current.z * speedMultiplier;
