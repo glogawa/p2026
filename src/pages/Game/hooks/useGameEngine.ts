@@ -257,8 +257,9 @@ export function useGameEngine({
     };
 
     const setupScene = async () => {
-      engine = new Engine(canvasRef.current!, true);
+      engine = new Engine(canvasRef.current!, false);
       engine.enableOfflineSupport = false;
+      engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
       
       scene = new Scene(engine!);
       const sceneRef = scene;
@@ -400,6 +401,7 @@ export function useGameEngine({
 
       // Render loop
       engine.runRenderLoop(() => {
+        engine!.resize();
         if (playerRig) {
           const currentTime = performance.now();
           const deltaTime = Math.min(currentTime - lastFrameTimeRef.current, 50); // Cap at 50ms to prevent large jumps

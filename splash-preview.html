@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splash Screen Preview - masked-out</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            background: #1a1a1e;
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .preview-item {
+            background: #2a2a30;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .preview-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .preview-title {
+            padding: 15px 20px;
+            background: #1a1a1e;
+            border-bottom: 2px solid #ffd700;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .preview-frame {
+            position: relative;
+            overflow: hidden;
+            background: #0a0a0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-frame.portrait {
+            aspect-ratio: 9 / 16;
+        }
+
+        .preview-frame.landscape {
+            aspect-ratio: 16 / 9;
+        }
+
+        .preview-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .preview-specs {
+            padding: 15px 20px;
+            background: #1a1a1e;
+            border-top: 1px solid #404045;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .specs-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .specs-label {
+            font-weight: 600;
+            color: #ffd700;
+        }
+
+        .fullscreen-viewer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #404045;
+        }
+
+        .fullscreen-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        .fullscreen-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .fullscreen-item {
+            background: #2a2a30;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+        }
+
+        .fullscreen-item.portrait {
+            aspect-ratio: 9 / 16;
+        }
+
+        .fullscreen-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #0a0a0f;
+        }
+
+        .fullscreen-item-label {
+            padding: 10px 15px;
+            background: #1a1a1e;
+            font-size: 0.9rem;
+            color: #aaa;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .fullscreen-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+
+        .info-box strong {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 masked-out PWA Splash Screen Preview</h1>
+
+        <div class="info-box">
+            <strong>ℹ️ Preview Information:</strong><br>
+            These splash screens will display when users install and launch your PWA. They feature a dark background with your masked character (favicon) and the nuon.png artwork.
+        </div>
+
+        <div class="preview-grid">
+            <!-- Portrait Preview -->
+            <div class="preview-item">
+                <div class="preview-title">📱 Mobile Portrait</div>
+                <div class="preview-frame portrait">
+                    <img src="public/assets/icon/splash-720x1280.png" alt="Mobile Portrait Splash">
+                </div>
+                <div class="preview-specs">
+                    <div class="specs-row">
+                        <span class="specs-label">Size:</span>
+                        <span>720 × 1280 px</span>
+                    </div>
+                    <div class="specs-row">
+                        <span class="specs-label">Form Factor:</span>
+                        <span>narrow (phones)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Landscape Preview -->
+            <div class="preview-item">
+                <div class="preview-title">🌄 Mobile Landscape</div>
+                <div class="preview-frame landscape">
+                    <img src="public/assets/icon/splash-1280x720.png" alt="Mobile Landscape Splash">
+                </div>
+                <div class="preview-specs">
+                    <div class="specs-row">
+                        <span class="specs-label">Size:</span>
+                        <span>1280 × 720 px</span>
+                    </div>
+                    <div class="specs-row">
+                        <span class="specs-label">Form Factor:</span>
+                        <span>wide (tablets)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- iPad Portrait Preview -->
+            <div class="preview-item">
+                <div class="preview-title">📲 iPad Portrait</div>
+                <div class="preview-frame portrait">
+                    <img src="public/assets/icon/splash-1536x2048.png" alt="iPad Portrait Splash">
+                </div>
+                <div class="preview-specs">
+                    <div class="specs-row">
+                        <span class="specs-label">Size:</span>
+                        <span>1536 × 2048 px</span>
+                    </div>
+                    <div class="specs-row">
+                        <span class="specs-label">Form Factor:</span>
+                        <span>narrow (tablets)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- iPad Landscape Preview -->
+            <div class="preview-item">
+                <div class="preview-title">🖥️ iPad Landscape</div>
+                <div class="preview-frame landscape">
+                    <img src="public/assets/icon/splash-2048x1536.png" alt="iPad Landscape Splash">
+                </div>
+                <div class="preview-specs">
+                    <div class="specs-row">
+                        <span class="specs-label">Size:</span>
+                        <span>2048 × 1536 px</span>
+                    </div>
+                    <div class="specs-row">
+                        <span class="specs-label">Form Factor:</span>
+                        <span>wide (large screens)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fullscreen-viewer">
+            <h2 class="fullscreen-title">Full Splash Screens</h2>
+            <div class="fullscreen-grid">
+                <div>
+                    <img src="public/assets/icon/splash-720x1280.png" alt="Portrait Splash Full">
+                    <div class="fullscreen-item-label">720×1280 Portrait</div>
+                </div>
+                <div>
+                    <img src="public/assets/icon/splash-1280x720.png" alt="Landscape Splash Full">
+                    <div class="fullscreen-item-label">1280×720 Landscape</div>
+                </div>
+                <div>
+                    <img src="public/assets/icon/splash-1536x2048.png" alt="iPad Portrait Full">
+                    <div class="fullscreen-item-label">1536×2048 iPad Portrait</div>
+                </div>
+                <div>
+                    <img src="public/assets/icon/splash-2048x1536.png" alt="iPad Landscape Full">
+                    <div class="fullscreen-item-label">2048×1536 iPad Landscape</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

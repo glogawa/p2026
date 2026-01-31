@@ -1,11 +1,15 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonCard, IonCardContent, IonIcon } from '@ionic/react';
 import { useState, useRef, useEffect } from 'react';
+import { arrowBack } from 'ionicons/icons';
 import { useGameState } from './hooks';
 import { useGameEngine } from './hooks';
 import { useGameJoystick } from './hooks';
 import { WinScreen, StartScreen, LevelLoader, FpsCounter, LoseScreen } from './ui';
+import { LoadCustomGameModal, GameModeScreen } from './components';
 import PageHeader from '../../components/PageHeader';
 import { generateRandomLevels } from './utils/generateRandomLevel';
+import { storyModeData } from './data/storyMode';
+import gamebg from '/gamebg.jpeg';
 import './Game.css';
 
 interface Level {
@@ -42,6 +46,8 @@ const Game: React.FC = () => {
   const [npcStats, setNPCStats] = useState<NPCStats | undefined>(undefined);
   const [fps, setFps] = useState<number>(0);
   const [showNPCGui, setShowNPCGui] = useState<boolean>(true);
+  const [showLoadModal, setShowLoadModal] = useState<boolean>(false);
+  const [gameMode, setGameMode] = useState<'selection' | 'story' | 'custom' | 'sandbox'>('selection');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -161,10 +167,18 @@ const Game: React.FC = () => {
   };
 
   const handleStartGame = () => {
-    if (loadedLevels && loadedLevels.length > 0) {
+    if (gameMode === 'story') {
+      setFenceConfig({
+        staggerDuration: storyModeData.general.fenceStaggerDurationMs,
+        bounceDistance: storyModeData.general.fenceBounceDistance,
+      });
+      setPlayerStats(storyModeData.general.playerStats);
+      setNPCStats(storyModeData.general.npcStats);
+      setLoadedLevels(storyModeData.locations as unknown as Level[]);
+      startGame(storyModeData.locations as unknown as Level[]);
+    } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
-    } else {
-      // Generate random levels if none are loaded
+    } else if (gameMode === 'sandbox') {
       const randomData = generateRandomLevels();
       setFenceConfig({
         staggerDuration: randomData.general.fenceStaggerDurationMs,
@@ -178,10 +192,18 @@ const Game: React.FC = () => {
   };
 
   const handlePlayAgain = () => {
-    if (loadedLevels && loadedLevels.length > 0) {
+    if (gameMode === 'story') {
+      setFenceConfig({
+        staggerDuration: storyModeData.general.fenceStaggerDurationMs,
+        bounceDistance: storyModeData.general.fenceBounceDistance,
+      });
+      setPlayerStats(storyModeData.general.playerStats);
+      setNPCStats(storyModeData.general.npcStats);
+      setLoadedLevels(storyModeData.locations as unknown as Level[]);
+      startGame(storyModeData.locations as unknown as Level[]);
+    } else if (gameMode === 'custom' && loadedLevels && loadedLevels.length > 0) {
       startGame(loadedLevels);
-    } else {
-      // Generate random levels if none are loaded
+    } else if (gameMode === 'sandbox') {
       const randomData = generateRandomLevels();
       setFenceConfig({
         staggerDuration: randomData.general.fenceStaggerDurationMs,
@@ -200,9 +222,9 @@ const Game: React.FC = () => {
         <PageHeader title="Game">
           <IonButton onClick={() => gameState.endGame()}>Leave Game</IonButton>
         </PageHeader>
-        <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0 }}>
-          <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+        <IonContent style={{ height: 'calc(100vh - 56px)', padding: 0, display: 'block' }}>
+          <div ref={joystickContainerRef} style={{ width: '100%', height: '100%', position: 'relative', display: 'block' }}>
+            <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
             {/* <FpsCounter fps={fps} /> */}
             <div style={{
               position: 'absolute',
@@ -254,6 +276,7 @@ const Game: React.FC = () => {
 
   return (
     <IonPage>
+      {!gameStarted && <div className="game-page-background" style={{ backgroundImage: `url(${gamebg})` }}></div>}
       <PageHeader title="Game" />
       <IonContent fullscreen>
         <IonHeader collapse="condense">
@@ -263,16 +286,96 @@ const Game: React.FC = () => {
         </IonHeader>
         {gameWon && <WinScreen onPlayAgain={handlePlayAgain} />}
         {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} />}
-        {!gameWon && !gameLost && (
-          <LevelLoader
-            pastedJson={pastedJson}
-            onJsonChange={setPastedJson}
-            onLoadLevels={loadLevels}
-            loadedLevels={loadedLevels}
+        {!gameWon && !gameLost && gameMode === 'selection' && (
+          <GameModeScreen
+            onStoryMode={() => setGameMode('story')}
+            onCustomMode={() => setGameMode('custom')}
+            onSandboxMode={() => setGameMode('sandbox')}
           />
         )}
-        {!gameWon && !gameLost && <StartScreen onStartGame={handleStartGame} />}
+        {!gameWon && !gameLost && gameMode === 'story' && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+              <IonCardContent>
+                <p style={{ margin: '0 0 10px 0' }}><strong>Story Mode</strong></p>
+                <p style={{ margin: '0 0 15px 0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Follow the narrative with carefully crafted levels
+                </p>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                  <IonButton
+                    className="glass-button"
+                    onClick={() => setGameMode('selection')}
+                  >
+                    <IonIcon icon={arrowBack} slot="start" />
+                  </IonButton>
+                  <StartScreen onStartGame={handleStartGame} />
+                </div>
+              </IonCardContent>
+            </IonCard>
+          </div>
+        )}
+        {!gameWon && !gameLost && gameMode === 'custom' && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonButton className="glass-button" onClick={() => setShowLoadModal(true)} expand="block" style={{ marginBottom: '20px' }}>
+              Load Custom Game
+            </IonButton>
+            {loadedLevels && loadedLevels.length > 0 && (
+              <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+                <IonCardContent>
+                  <p style={{ marginTop: 0, marginBottom: '10px' }}><strong>✓ Loaded {loadedLevels.length} levels</strong></p>
+                  {loadedLevels.map((level) => (
+                    <p key={level.id} style={{ fontSize: '0.9em', marginBottom: '5px', color: 'rgba(255, 255, 255, 0.8)' }}>
+                      Level {level.id}: {level.gridSize}×{level.gridSize} grid
+                    </p>
+                  ))}
+                </IonCardContent>
+              </IonCard>
+            )}
+            <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+              <IonCardContent>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                  <IonButton
+                    className="glass-button"
+                    onClick={() => setGameMode('selection')}
+                  >
+                    <IonIcon icon={arrowBack} slot="start" />
+                  </IonButton>
+                  <StartScreen onStartGame={handleStartGame} />
+                </div>
+              </IonCardContent>
+            </IonCard>
+          </div>
+        )}
+        {!gameWon && !gameLost && gameMode === 'sandbox' && (
+          <div style={{ margin: '20px auto', maxWidth: '400px' }}>
+            <IonCard className="glass-card" style={{ marginBottom: '20px' }}>
+              <IonCardContent>
+                <p style={{ margin: '0 0 10px 0' }}><strong>Sandbox Mode</strong></p>
+                <p style={{ margin: '0 0 15px 0', fontSize: '0.9em', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Generate random levels for endless fun
+                </p>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                  <IonButton
+                    className="glass-button"
+                    onClick={() => setGameMode('selection')}
+                  >
+                    <IonIcon icon={arrowBack} slot="start" />
+                  </IonButton>
+                  <StartScreen onStartGame={handleStartGame} />
+                </div>
+              </IonCardContent>
+            </IonCard>
+          </div>
+        )}
       </IonContent>
+      <LoadCustomGameModal
+        isOpen={showLoadModal}
+        pastedJson={pastedJson}
+        onJsonChange={setPastedJson}
+        onLoadLevels={loadLevels}
+        onClose={() => setShowLoadModal(false)}
+        loadedLevels={loadedLevels}
+      />
     </IonPage>
   );
 };
