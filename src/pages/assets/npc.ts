@@ -22,7 +22,7 @@ export const defaultNPCConfig: NPCConfig = {
   panicSpeedPerMs: 0.001, // 1.0 units per second (panic is only slightly faster)
 };
 
-export type NPCState = 'thinking' | 'socializing' | 'wandering' | 'staggered' | 'panic';
+export type NPCState = 'thinking' | 'socializing' | 'wandering' | 'staggered' | 'panic' | 'escaping' | 'fleeing';
 
 export interface NPCInstance {
   mesh: any;
@@ -40,6 +40,11 @@ export interface NPCInstance {
   guiLine?: Line;
   stamina?: number;
   agility?: number;
+  isThief?: boolean;
+  stolenObjective?: string; // Position of the stolen objective (e.g., "5,3")
+  fleeingEndTime?: number; // When to transition from fleeing back to escaping (2s duration)
+  escapingTemporaryState?: NPCState; // Temporary state while escaping (thinking/wandering/socializing)
+  escapingTemporaryStateEndTime?: number; // When to return to escaping
 }
 
 export function createNPC(scene: Scene, position: Vector3, scale: number = 1): TransformNode {
@@ -55,12 +60,13 @@ export function createNPC(scene: Scene, position: Vector3, scale: number = 1): T
 export function attachNPCGUI(npc: NPCInstance, scene: Scene, textureRef: AdvancedDynamicTexture): void {
   // Create a rectangle to display the state
   const stateRect = new Rectangle();
-  const borderColor = "#ffffff55";
+  // Use red border for thieves, white for regular NPCs
+  const borderColor = npc.isThief ? "#ff0000aa" : "#ffffff55";
   stateRect.width = 0.15;
   stateRect.height = '30px';
   stateRect.cornerRadius = 10;
   stateRect.color = borderColor;
-  stateRect.thickness = 1;
+  stateRect.thickness = 2;
   stateRect.background = 'rgba(0, 0, 0, 0.7)';
   textureRef.addControl(stateRect);
   stateRect.linkWithMesh(npc.mesh);
@@ -112,6 +118,12 @@ export function updateNPCGUILabel(npc: NPCInstance, newState: NPCState): void {
         break;
       case 'panic':
         npc.guiLabel.color = 'darkorange';
+        break;
+      case 'escaping':
+        npc.guiLabel.color = 'purple';
+        break;
+      case 'fleeing':
+        npc.guiLabel.color = 'red';
         break;
     }
   }
@@ -203,6 +215,17 @@ export function changeNPCState(npc: NPCInstance, newState: NPCState, now: number
   npc.targetPosition = undefined;
   npc.targetNPC = undefined;
 
+  // Clear temporary escape state if transitioning back to escaping
+  if (newState === 'escaping') {
+    npc.escapingTemporaryState = undefined;
+    npc.escapingTemporaryStateEndTime = undefined;
+  }
+
+  // Set fleeing end time if entering fleeing state (2 second duration)
+  if (newState === 'fleeing') {
+    npc.fleeingEndTime = now + 2000; // 2 seconds fleeing
+  }
+
   // Update GUI label to reflect the new state
   updateNPCGUILabel(npc, newState);
 
@@ -238,11 +261,19 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     socializing: 0.3,
     wandering: 0.6,
     staggered: 0.1,
-    panic: 0.5
+    panic: 0.5,
+    escaping: 0,
+    fleeing: 0
   };
   
   switch (npc.state) {
     case 'thinking': {
+      // Check if this is a temporary escape distraction that should end
+      if (npc.escapingTemporaryState === 'thinking' && npc.escapingTemporaryStateEndTime && now >= npc.escapingTemporaryStateEndTime) {
+        npc.escapingTemporaryState = undefined;
+        npc.escapingTemporaryStateEndTime = undefined;
+        return 'escaping';
+      }
       // Random chance to transition out of thinking
       if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs / staminaMultiplier) {
         // 60% chance to wander, 40% chance to socialize
@@ -252,6 +283,12 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'socializing': {
+      // Check if this is a temporary escape distraction that should end
+      if (npc.escapingTemporaryState === 'socializing' && npc.escapingTemporaryStateEndTime && now >= npc.escapingTemporaryStateEndTime) {
+        npc.escapingTemporaryState = undefined;
+        npc.escapingTemporaryStateEndTime = undefined;
+        return 'escaping';
+      }
       if (timeSinceStateChange > defaultNPCConfig.socializingDurationMs / staminaMultiplier) {
         if (Math.random() < stayProbabilities.socializing) {
           return 'socializing';
@@ -263,6 +300,12 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'wandering': {
+      // Check if this is a temporary escape distraction that should end
+      if (npc.escapingTemporaryState === 'wandering' && npc.escapingTemporaryStateEndTime && now >= npc.escapingTemporaryStateEndTime) {
+        npc.escapingTemporaryState = undefined;
+        npc.escapingTemporaryStateEndTime = undefined;
+        return 'escaping';
+      }
       if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs * 0.8 / staminaMultiplier) {
         if (Math.random() < stayProbabilities.wandering) {
           return 'wandering';
@@ -275,24 +318,63 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'staggered': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs / staminaMultiplier) {
+      // Thieves with stolen objectives recover faster (50% of normal time)
+      const recoveryTime = npc.stolenObjective ? defaultNPCConfig.staggerDurationMs * 0.5 / staminaMultiplier : defaultNPCConfig.staggerDurationMs / staminaMultiplier;
+      if (timeSinceStateChange > recoveryTime) {
         if (Math.random() < stayProbabilities.staggered) {
           return 'staggered';
         } else {
-          return 'panic';
+          // Only thieves with stolen objectives go to escaping
+          if (npc.isThief && npc.stolenObjective) {
+            return 'escaping';
+          } else {
+            return 'panic';
+          }
         }
       }
       break;
     }
 
     case 'panic': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs * 3 / staminaMultiplier) {
+      // Thieves with stolen objectives recover faster (50% of normal time)
+      const recoveryTime = npc.stolenObjective ? defaultNPCConfig.staggerDurationMs * 1.5 / staminaMultiplier : defaultNPCConfig.staggerDurationMs * 3 / staminaMultiplier;
+      if (timeSinceStateChange > recoveryTime) {
         if (Math.random() < stayProbabilities.panic) {
           return 'panic';
         } else {
-          // Exit panic and return to normal
-          return 'thinking';
+          // Only thieves with stolen objectives go to escaping
+          if (npc.isThief && npc.stolenObjective) {
+            return 'escaping';
+          } else {
+            return 'thinking';
+          }
         }
+      }
+      break;
+    }
+
+    case 'escaping': {
+      // 20% chance to become distracted for 2 seconds
+      // This creates gameplay opportunities for the player to catch them
+      const distractionChance = 0.20; // 20% chance per frame
+      if (Math.random() < distractionChance) {
+        // Pick a random temporary state: thinking, wandering, or socializing
+        const tempStates: NPCState[] = ['thinking', 'wandering', 'socializing'];
+        const tempState = tempStates[Math.floor(Math.random() * tempStates.length)];
+        // Set to return to escaping after 2 seconds
+        npc.escapingTemporaryState = tempState;
+        npc.escapingTemporaryStateEndTime = now + 2000; // 2 seconds
+        return tempState;
+      }
+      break;
+    }
+
+    case 'fleeing': {
+      // Fleeing lasts for 2 seconds, then transition based on whether objective is still stolen
+      if (npc.fleeingEndTime && now >= npc.fleeingEndTime) {
+        npc.fleeingEndTime = undefined; // Clear fleeing end time
+        // Only transition to escaping if still has stolen objective, otherwise go to panic
+        return npc.stolenObjective ? 'escaping' : 'panic';
       }
       break;
     }

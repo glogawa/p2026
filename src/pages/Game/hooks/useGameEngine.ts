@@ -13,7 +13,9 @@ interface UseGameEngineOptions {
   currentLevel: any;
   joystickMovement: { x: number; z: number };
   onLevelComplete: () => void;
+  onGameLost: () => void;
   onObjectiveCollected: (objectivePos: string) => void;
+  onObjectiveLost: (objectivePos: string) => void;
   collectedObjectives: Set<string>;
   enabled: boolean;
   fenceConfig?: FenceConfig;
@@ -27,7 +29,9 @@ export function useGameEngine({
   currentLevel,
   joystickMovement,
   onLevelComplete,
+  onGameLost,
   onObjectiveCollected,
+  onObjectiveLost,
   collectedObjectives,
   enabled,
   fenceConfig = defaultFenceConfig,
@@ -38,7 +42,9 @@ export function useGameEngine({
   const objectiveTilesRef = useRef<{ [key: string]: { tile: any; material: any } }>({});
   const collectedRef = useRef(collectedObjectives);
   const onObjectiveCollectedRef = useRef(onObjectiveCollected);
+  const onObjectiveLostRef = useRef(onObjectiveLost);
   const onLevelCompleteRef = useRef(onLevelComplete);
+  const onGameLostRef = useRef(onGameLost);
   const staggerStateRef = useRef({ isStaggered: false, staggerEndTime: 0 });
   const fenceMeshesRef = useRef<{ [key: string]: any }>({});
   const npcsRef = useRef<NPCInstance[]>([]);
@@ -53,15 +59,17 @@ export function useGameEngine({
   const cameraRef = useRef<any>(null);
   const joystickMovementRef = useRef(joystickMovement);
 
-  // Update the refs when callbacks change
+  // Sync refs when callbacks or props change
   useEffect(() => {
-    collectedRef.current = collectedObjectives;
+    collectedRef.current = new Set(collectedObjectives);
   }, [collectedObjectives]);
 
   useEffect(() => {
     onObjectiveCollectedRef.current = onObjectiveCollected;
+    onObjectiveLostRef.current = onObjectiveLost;
     onLevelCompleteRef.current = onLevelComplete;
-  }, [onObjectiveCollected, onLevelComplete]);
+    onGameLostRef.current = onGameLost;
+  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete, onGameLost]);
 
   useEffect(() => {
     joystickMovementRef.current = joystickMovement;
@@ -345,17 +353,35 @@ export function useGameEngine({
             stateStartTime: 0, // Set to 0 so it immediately starts changing state
             stamina: npcStats_data.stamina,
             agility: npcStats_data.agility,
+            isThief: false, // Will be assigned below
           };
           npcsRef.current.push(npcInstance);
-          
-          // Attach GUI label to NPC (and set initial visibility)
-          attachNPCGUI(npcInstance, scene!, guiTexture);
-          if (npcInstance.guiRect) {
-            npcInstance.guiRect.isVisible = showNPCGui;
-          }
-          if (npcInstance.guiLine) {
-            npcInstance.guiLine.isVisible = showNPCGui;
-          }
+        }
+      });
+
+      // Assign thieves randomly (max 1/3 of total NPCs, rounded down)
+      const totalNPCs = npcsRef.current.length;
+      const maxThieves = Math.floor(totalNPCs / 3);
+      const numThieves = maxThieves > 0 ? Math.floor(Math.random() * maxThieves) + (maxThieves > 0 ? 1 : 0) : 0;
+      
+      if (numThieves > 0) {
+        const thiefIndices = new Set<number>();
+        while (thiefIndices.size < numThieves) {
+          thiefIndices.add(Math.floor(Math.random() * totalNPCs));
+        }
+        thiefIndices.forEach((index) => {
+          npcsRef.current[index].isThief = true;
+        });
+      }
+
+      // Attach GUI labels to all NPCs
+      npcsRef.current.forEach((npcInstance) => {
+        attachNPCGUI(npcInstance, scene!, guiTexture);
+        if (npcInstance.guiRect) {
+          npcInstance.guiRect.isVisible = showNPCGui;
+        }
+        if (npcInstance.guiLine) {
+          npcInstance.guiLine.isVisible = showNPCGui;
         }
       });
 
@@ -452,12 +478,20 @@ export function useGameEngine({
           }
         });
 
-        // Check if reached end (only if all objectives are collected)
+        // Check if reached end (only if all objectives are collected and no thieves escaped)
         if (endPos && collectedRef.current.size === Object.keys(objectives).length) {
           if (Vector3.Distance(playerRig.position, endPos) < 0.5) {
             onLevelCompleteRef.current();
           }
         }
+
+        // Check if any thief with stolen objective reached the exit
+        npcsRef.current.forEach((npc) => {
+          if (npc.stolenObjective && endPos && Vector3.Distance(npc.position, endPos) < 0.5) {
+            // Thief escaped! Game over - player loses
+            onGameLostRef.current();
+          }
+        });
 
         // Update NPC AI
         npcsRef.current.forEach((npc) => {
@@ -467,21 +501,66 @@ export function useGameEngine({
           // Check player collision with NPC (both are ~0.5 units in size, collision at ~0.65 units)
           const npcCollisionRadius = 0.65;
           if (distanceToPlayer < npcCollisionRadius && !isStaggered) {
-            if (npc.state !== 'staggered' && npc.state !== 'panic') {
-              // NPC gets staggered
+            let shouldApplyStagger = true;
+            let collisionHandled = false;
+
+            // Skip collision if thief is fleeing (immune to all interactions for 2 seconds)
+            if (npc.isThief && npc.state === 'fleeing') {
+              // No collision interactions - thief is in full escape mode
+              shouldApplyStagger = false;
+              collisionHandled = true;
+            }
+            
+            // Try to steal back objective from thief (any state except fleeing)
+            if (!collisionHandled && npc.isThief && npc.stolenObjective && npc.state !== 'fleeing') {
+              // Steal back the objective
+              collectedRef.current.add(npc.stolenObjective);
+              onObjectiveCollectedRef.current(npc.stolenObjective);
+              npc.stolenObjective = undefined;
+              // Enter staggered state after being hit
               changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
               npc.panicStartTime = currentTime;
+              // Push NPC back (further because they had stolen objective)
+              const dirX = npc.position.x - playerRig.position.x;
+              const dirZ = npc.position.z - playerRig.position.z;
+              const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+              npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance * 1.5;
+              npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance * 1.5;
+              collisionHandled = true;
+            }
+            
+            // Try to steal new objective (only if not already handled and not in restricted states)
+            if (!collisionHandled && npc.state !== 'staggered' && npc.state !== 'panic' && npc.state !== 'fleeing' && npc.state !== 'escaping') {
+              if (npc.isThief && collectedRef.current.size > 0 && !npc.stolenObjective) {
+                // Pick a random collected objective to steal
+                const collectedObjectives = Array.from(collectedRef.current);
+                const stolenObjectivePos = collectedObjectives[Math.floor(Math.random() * collectedObjectives.length)];
+                npc.stolenObjective = stolenObjectivePos;
+                collectedRef.current.delete(stolenObjectivePos);
+                onObjectiveLostRef.current(stolenObjectivePos);
+                // Immediately enter fleeing state (immune to all interactions for 2 seconds)
+                changeNPCState(npc, 'fleeing', currentTime, gridSize, playerRig.position);
+              } else {
+                // Regular collision - NPC gets staggered
+                changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
+                npc.panicStartTime = currentTime;
+              }
               // Push NPC back
               const dirX = npc.position.x - playerRig.position.x;
               const dirZ = npc.position.z - playerRig.position.z;
               const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-              npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance;
-              npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance;
+              const knockbackMultiplier = npc.stolenObjective ? 1.5 : 1; // 1.5x knockback for thieves with stolen objectives
+              npc.position.x += (dirX / length) * defaultNPCConfig.staggerBounceDistance * knockbackMultiplier;
+              npc.position.z += (dirZ / length) * defaultNPCConfig.staggerBounceDistance * knockbackMultiplier;
+              collisionHandled = true;
             }
-            // Player enters stagger state
-            playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
-            staggerStateRef.current.isStaggered = true;
-            staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
+
+            // Player enters stagger state only if not fleeing
+            if (shouldApplyStagger) {
+              playerStaggerTimeRef.current = currentTime + defaultNPCConfig.staggerDurationMs;
+              staggerStateRef.current.isStaggered = true;
+              staggerStateRef.current.staggerEndTime = playerStaggerTimeRef.current;
+            }
           }
 
           // Check if NPC should transition to a new state
@@ -573,6 +652,34 @@ export function useGameEngine({
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
                 const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
                 const moveDistance = defaultNPCConfig.panicSpeedPerMs * deltaTime * agilityMultiplier;
+                npc.position.x += (dirX / length) * moveDistance;
+                npc.position.z += (dirZ / length) * moveDistance;
+              }
+              break;
+
+            case 'escaping':
+              // Move towards exit at slightly faster speed (1.1x panic speed)
+              if (endPos) {
+                const dirX = endPos.x - npc.position.x;
+                const dirZ = endPos.z - npc.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                // Escaping speed is 1.1x the panic speed
+                const moveDistance = defaultNPCConfig.panicSpeedPerMs * 1.1 * deltaTime * agilityMultiplier;
+                npc.position.x += (dirX / length) * moveDistance;
+                npc.position.z += (dirZ / length) * moveDistance;
+              }
+              break;
+
+            case 'fleeing':
+              // Move towards exit at faster speed (1.5x panic speed), immune to collisions
+              if (endPos) {
+                const dirX = endPos.x - npc.position.x;
+                const dirZ = endPos.z - npc.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                const agilityMultiplier = npc.agility ? npc.agility / 5 : 1;
+                // Fleeing speed is 1.5x the panic speed
+                const moveDistance = defaultNPCConfig.panicSpeedPerMs * 1.5 * deltaTime * agilityMultiplier;
                 npc.position.x += (dirX / length) * moveDistance;
                 npc.position.z += (dirZ / length) * moveDistance;
               }
