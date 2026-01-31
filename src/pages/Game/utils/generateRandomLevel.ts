@@ -1,7 +1,28 @@
+interface PlayerStats {
+  stamina: number;
+  agility: number;
+}
+
+interface NPCStats {
+  stamina: number;
+  staminaVariance: number;
+  agility: { min: number; max: number };
+}
+
 interface Level {
   id: number;
   gridSize: number;
   positions: { [key: string]: 'start' | 'end' | 'objective' | 'fence' | 'npc' | null };
+}
+
+interface LevelDataWithStats {
+  general: {
+    fenceStaggerDurationMs: number;
+    fenceBounceDistance: number;
+    playerStats: PlayerStats;
+    npcStats: NPCStats;
+  };
+  locations: Level[];
 }
 
 function getRandomPosition(gridSize: number, excludePositions: Set<string>): string {
@@ -12,6 +33,34 @@ function getRandomPosition(gridSize: number, excludePositions: Set<string>): str
     pos = `${x},${y}`;
   } while (excludePositions.has(pos));
   return pos;
+}
+
+function generateRandomPlayerStats(): PlayerStats {
+  // Randomize player stamina between 8 and 12
+  const stamina = Math.floor(Math.random() * 5) + 8; // 8-12
+  
+  // Randomize player agility between 3 and 7
+  const agility = Math.floor(Math.random() * 5) + 3; // 3-7
+  
+  return { stamina, agility };
+}
+
+function generateRandomNPCStats(): NPCStats {
+  // Randomize NPC base stamina between 2 and 4 (centered on 3)
+  const stamina = Math.floor(Math.random() * 3) + 2; // 2-4
+  
+  // Randomize stamina variance between 0 and 2 (±0 to ±2)
+  const staminaVariance = Math.floor(Math.random() * 3); // 0-2
+  
+  // Randomize agility range within 0-10 as per original request
+  const agilityMin = Math.floor(Math.random() * 4); // 0-3
+  const agilityMax = Math.floor(Math.random() * 4) + 7; // 7-10
+  
+  return {
+    stamina,
+    staminaVariance,
+    agility: { min: agilityMin, max: Math.max(agilityMin + 2, agilityMax) }, // Ensure max > min by at least 2
+  };
 }
 
 export function generateRandomLevel(id: number = 1): Level {
@@ -82,6 +131,16 @@ export function generateRandomLevel(id: number = 1): Level {
   };
 }
 
-export function generateRandomLevels(count: number = 3): Level[] {
-  return Array.from({ length: count }, (_, i) => generateRandomLevel(i + 1));
+export function generateRandomLevels(count: number = 3): LevelDataWithStats {
+  const levels = Array.from({ length: count }, (_, i) => generateRandomLevel(i + 1));
+  
+  return {
+    general: {
+      fenceStaggerDurationMs: 500,
+      fenceBounceDistance: 0.2,
+      playerStats: generateRandomPlayerStats(),
+      npcStats: generateRandomNPCStats(),
+    },
+    locations: levels,
+  };
 }

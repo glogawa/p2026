@@ -37,6 +37,8 @@ export interface NPCInstance {
   guiRect?: Rectangle;
   guiTarget?: Ellipse;
   guiLine?: Line;
+  stamina?: number;
+  agility?: number;
 }
 
 export function createNPC(scene: Scene, position: Vector3): any {
@@ -197,7 +199,7 @@ export function findNearestNPC(npc: NPCInstance, npcs: NPCInstance[], minDistanc
   return nearest;
 }
 
-export function changeNPCState(npc: NPCInstance, newState: NPCState, now: number, gridSize: number = 20): void {
+export function changeNPCState(npc: NPCInstance, newState: NPCState, now: number, gridSize: number = 20, playerPos?: Vector3): void {
   npc.state = newState;
   npc.stateStartTime = now;
   npc.lastStateChangeTime = now;
@@ -209,18 +211,43 @@ export function changeNPCState(npc: NPCInstance, newState: NPCState, now: number
 
   if (newState === 'panic') {
     npc.panicStartTime = now;
-    // Set initial adjacent panic destination
-    npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+    // Set initial panic destination away from player
+    if (playerPos) {
+      const dirX = npc.position.x - playerPos.x;
+      const dirZ = npc.position.z - playerPos.z;
+      const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+      const awayX = npc.position.x + (dirX / length) * 1.2;
+      const awayZ = npc.position.z + (dirZ / length) * 1.2;
+      // Clamp to grid boundaries
+      const halfGrid = gridSize / 2;
+      const minBound = -halfGrid + 0.5;
+      const maxBound = halfGrid - 0.5;
+      const clampedX = Math.max(minBound, Math.min(maxBound, awayX));
+      const clampedZ = Math.max(minBound, Math.min(maxBound, awayZ));
+      npc.targetPosition = new Vector3(clampedX, 0.5, clampedZ);
+    } else {
+      // Fallback to random adjacent
+      npc.targetPosition = getRandomAdjacentPosition(npc, gridSize);
+    }
   }
 }
 
 export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: number): NPCState | null {
   const timeSinceStateChange = now - npc.stateStartTime;
+  const staminaMultiplier = npc.stamina ? npc.stamina / 5 : 1; // Lower stamina means quicker changes
+  
+  const stayProbabilities: Record<NPCState, number> = {
+    thinking: 0,
+    socializing: 0.3,
+    wandering: 0.6,
+    staggered: 0.1,
+    panic: 0.5
+  };
   
   switch (npc.state) {
     case 'thinking': {
       // Random chance to transition out of thinking
-      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs) {
+      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs / staminaMultiplier) {
         // 60% chance to wander, 40% chance to socialize
         return Math.random() > 0.4 ? 'wandering' : 'socializing';
       }
@@ -228,35 +255,68 @@ export function getNextNPCState(npc: NPCInstance, allNPCs: NPCInstance[], now: n
     }
 
     case 'socializing': {
-      if (timeSinceStateChange > defaultNPCConfig.socializingDurationMs) {
-        return 'thinking';
+      if (timeSinceStateChange > defaultNPCConfig.socializingDurationMs / staminaMultiplier) {
+        if (Math.random() < stayProbabilities.socializing) {
+          return 'socializing';
+        } else {
+          return 'thinking';
+        }
       }
       break;
     }
 
     case 'wandering': {
-      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs * 0.8) {
-        // After wandering for a bit, go back to thinking
-        return 'thinking';
+      if (timeSinceStateChange > defaultNPCConfig.thinkingDurationMs * 0.8 / staminaMultiplier) {
+        if (Math.random() < stayProbabilities.wandering) {
+          return 'wandering';
+        } else {
+          // After wandering for a bit, go back to thinking
+          return 'thinking';
+        }
       }
       break;
     }
 
     case 'staggered': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs) {
-        return 'panic';
+      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs / staminaMultiplier) {
+        if (Math.random() < stayProbabilities.staggered) {
+          return 'staggered';
+        } else {
+          return 'panic';
+        }
       }
       break;
     }
 
     case 'panic': {
-      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs * 3) {
-        // Exit panic and return to normal
-        return 'thinking';
+      if (timeSinceStateChange > defaultNPCConfig.staggerDurationMs * 3 / staminaMultiplier) {
+        if (Math.random() < stayProbabilities.panic) {
+          return 'panic';
+        } else {
+          // Exit panic and return to normal
+          return 'thinking';
+        }
       }
       break;
     }
   }
 
   return null;
+}
+
+export interface NPCStatsConfig {
+  stamina: number;
+  staminaVariance: number;
+  agility: { min: number; max: number };
+}
+
+export function generateNPCStats(config: NPCStatsConfig): { stamina: number; agility: number } {
+  // Generate stamina with variance
+  const variance = Math.floor((Math.random() - 0.5) * 2 * config.staminaVariance);
+  const stamina = Math.max(1, config.stamina + variance);
+
+  // Generate agility randomly within min/max range
+  const agility = Math.floor(Math.random() * (config.agility.max - config.agility.min + 1)) + config.agility.min;
+
+  return { stamina, agility };
 }
