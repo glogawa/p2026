@@ -56,6 +56,7 @@ const Game: React.FC = () => {
   const [maskDestroying, setMaskDestroying] = useState<boolean>(false);
   const [loseReason, setLoseReason] = useState<'thief' | 'recognized'>('thief');
   const [welcomeShown, setWelcomeShown] = useState<boolean>(false);
+  const [scoreAnimating, setScoreAnimating] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickContainerRef = useRef<HTMLDivElement>(null);
   const joystickMovementRef = useRef({ x: 0, z: 0 });
@@ -73,6 +74,7 @@ const Game: React.FC = () => {
     gameLost,
     loadedLevels,
     collectedObjectives,
+    score,
     startGame,
     nextLevel,
     setLoadedLevels,
@@ -80,6 +82,8 @@ const Game: React.FC = () => {
     loseObjective,
     resetCollectedObjectives,
     loseGame,
+    addScore,
+    resetScore,
   } = gameState;
 
   // Story mode welcome notification
@@ -93,6 +97,27 @@ const Game: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [gameStarted, gameMode, currentLevelIndex, welcomeShown, showNotification]);
+
+  // Score system - add 1 point every minute
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const scoreInterval = setInterval(() => {
+      addScore(1);
+      setScoreAnimating(true);
+      const timer = setTimeout(() => setScoreAnimating(false), 500);
+      return () => clearTimeout(timer);
+    }, 60000); // 60 seconds = 1 minute
+
+    return () => clearInterval(scoreInterval);
+  }, [gameStarted, addScore]);
+
+  // Animate score when it changes
+  useEffect(() => {
+    setScoreAnimating(true);
+    const timer = setTimeout(() => setScoreAnimating(false), 500);
+    return () => clearTimeout(timer);
+  }, [score]);
 
   // Setup FPS counter
   useEffect(() => {
@@ -217,7 +242,10 @@ const Game: React.FC = () => {
         }
       }
     },
-    onObjectiveCollected: collectObjective,
+    onObjectiveCollected: (objectivePos) => {
+      collectObjective(objectivePos);
+      addScore(1);
+    },
     onObjectiveLost: loseObjective,
     onGameLost: loseGame,
     onNPCCollision: (isThief) => {
@@ -262,6 +290,7 @@ const Game: React.FC = () => {
   };
 
   const handleStartGame = () => {
+    resetScore();
     if (gameMode === 'story') {
       setFenceConfig({
         staggerDuration: storyModeData.general.fenceStaggerDurationMs,
@@ -295,6 +324,7 @@ const Game: React.FC = () => {
     setAlertTimer(20);
     setWelcomeShown(false);
     alertStateRef.current = { phase: 'low', timer: 20 };
+    resetScore();
     
     if (gameMode === 'story') {
       setFenceConfig({
@@ -358,6 +388,18 @@ const Game: React.FC = () => {
               alignItems: 'center',
               gap: '20px'
             }}>
+              {/* Score */}
+              <div style={{
+                fontSize: '18px',
+                color: '#999999',
+                transition: 'all 0.3s ease',
+                transform: scoreAnimating ? 'scale(1.3)' : 'scale(1)',
+                textShadow: scoreAnimating ? '0 0 10px rgba(153, 153, 153, 0.8)' : 'none',
+                fontWeight: scoreAnimating ? 'bold' : 'normal'
+              }}>
+                {score}
+              </div>
+              
               {/* Mask */}
               <div style={{
                 display: 'flex',
@@ -479,8 +521,8 @@ const Game: React.FC = () => {
             <IonTitle size="large">Game</IonTitle>
           </IonToolbar>
         </IonHeader>
-        {gameWon && <WinScreen onPlayAgain={handlePlayAgain} />}
-        {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} loseReason={loseReason} />}
+        {gameWon && <WinScreen onPlayAgain={handlePlayAgain} score={score} />}
+        {gameLost && <LoseScreen onPlayAgain={handlePlayAgain} loseReason={loseReason} score={score} />}
         {!gameWon && !gameLost && gameMode === 'selection' && (
           <GameModeScreen
             onStoryMode={() => setGameMode('story')}

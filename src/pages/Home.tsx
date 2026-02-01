@@ -86,7 +86,7 @@ const Home: React.FC = () => {
               </IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
-              <div className="credit-item">
+              <div className="credit-item" style={{ textAlign: 'center' }}>
                 <div className="credit-list">
                   {credits.map((member, index) => (
                     <span key={index} className="credit-name">
@@ -95,8 +95,16 @@ const Home: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <img src="/nuon.png" alt="Nuon Logo" className="nuon-logo" style={{ width: '80px', height: 'auto' }} />
-              <p className="credit-note">
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
+                <img src="/ggjsponsors.png" alt="GGJ 2026 Sponsors" style={{ width: '100%', maxWidth: '400px', height: 'auto' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
+                <img src="/youcyellow.jpeg" alt="Additional Partners" style={{ width: '100%', maxWidth: '150px', height: 'auto' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
+                <img src="/nuon.png" alt="Nuon Logo" className="nuon-logo" style={{ width: '80px', height: 'auto' }} />
+              </div>
+              <p className="credit-note" style={{ textAlign: 'center' }}>
                 Thank you to all team members who contributed their time, passion and talent to this project during the 48-hour jam!
               </p>
             </IonCardContent>
