@@ -49,6 +49,7 @@ export function useGameEngine({
   const onNPCCollisionRef = useRef(onNPCCollision);
   const onObjectiveLostRef = useRef(onObjectiveLost);
   const onLevelCompleteRef = useRef(onLevelComplete);
+  const alertPhaseRef = useRef(alertPhase);
   const onGameLostRef = useRef(onGameLost);
   const staggerStateRef = useRef({ isStaggered: false, staggerEndTime: 0 });
   const fenceMeshesRef = useRef<{ [key: string]: any }>({});
@@ -74,7 +75,12 @@ export function useGameEngine({
     onObjectiveLostRef.current = onObjectiveLost;
     onLevelCompleteRef.current = onLevelComplete;
     onGameLostRef.current = onGameLost;
-  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete, onGameLost]);
+    onNPCCollisionRef.current = onNPCCollision;
+  }, [onObjectiveCollected, onObjectiveLost, onLevelComplete, onGameLost, onNPCCollision]);
+
+  useEffect(() => {
+    alertPhaseRef.current = alertPhase;
+  }, [alertPhase]);
 
   useEffect(() => {
     joystickMovementRef.current = joystickMovement;
@@ -422,20 +428,35 @@ export function useGameEngine({
           // Only allow movement if not staggered
           if (!isStaggered) {
             const speedMultiplier = playerStats ? playerStats.agility / 20 : 1;
-            // Keyboard movement
-            if (inputMap['w']) {
+            // Keyboard movement (WASD + Arrow keys)
+            if (inputMap['w'] || inputMap['arrowup']) {
               playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.2 * speedMultiplier;
               playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.2 * speedMultiplier;
             }
-            if (inputMap['s']) {
+            if (inputMap['s'] || inputMap['arrowdown']) {
               playerRig.position.x += Math.sin(playerRig.rotation.y) * 0.1 * speedMultiplier;
               playerRig.position.z += Math.cos(playerRig.rotation.y) * 0.1 * speedMultiplier;
             }
-            if (inputMap['a']) playerRig.rotation.y -= 0.025;
-            if (inputMap['d']) playerRig.rotation.y += 0.025;
-            // Joystick movement
-            playerRig.position.x += joystickMovementRef.current.x * speedMultiplier;
-            playerRig.position.z += joystickMovementRef.current.z * speedMultiplier;
+            if (inputMap['a'] || inputMap['arrowleft']) playerRig.rotation.y -= 0.025;
+            if (inputMap['d'] || inputMap['arrowright']) playerRig.rotation.y += 0.025;
+            
+            // Joystick movement (x = rotation, z = forward/backward like WASD)
+            const joystickX = joystickMovementRef.current.x;
+            const joystickZ = joystickMovementRef.current.z;
+            
+            // Apply rotation from joystick X input
+            playerRig.rotation.y += joystickX * 0.025;
+            
+            // Apply forward/backward movement from joystick Z input (like W/S)
+            if (joystickZ > 0) {
+              // Forward (like W)
+              playerRig.position.x -= Math.sin(playerRig.rotation.y) * 0.2 * joystickZ * speedMultiplier;
+              playerRig.position.z -= Math.cos(playerRig.rotation.y) * 0.2 * joystickZ * speedMultiplier;
+            } else if (joystickZ < 0) {
+              // Backward (like S)
+              playerRig.position.x += Math.sin(playerRig.rotation.y) * 0.1 * Math.abs(joystickZ) * speedMultiplier;
+              playerRig.position.z += Math.cos(playerRig.rotation.y) * 0.1 * Math.abs(joystickZ) * speedMultiplier;
+            }
           }
 
         // Check fence collisions (fence is 1x1 box, so collision radius is ~0.7 from center to corner)
@@ -486,7 +507,7 @@ export function useGameEngine({
         });
 
         // Check if reached end (only if all objectives are collected and no thieves escaped)
-        if (endPos && collectedRef.current.size === Object.keys(objectives).length) {
+        if (endPos && collectedRef.current.size >= Object.keys(objectives).length) {
           if (Vector3.Distance(playerRig.position, endPos) < 0.5) {
             onLevelCompleteRef.current();
           }
@@ -554,7 +575,7 @@ export function useGameEngine({
                 changeNPCState(npc, 'staggered', currentTime, undefined, playerRig.position);
                 npc.panicStartTime = currentTime;
                 // Trigger collision callback for non-thief NPC during low alert
-                if (alertPhase === 'low') {
+                if (alertPhaseRef.current === 'low') {
                   onNPCCollisionRef.current?.(false);
                 }
               }

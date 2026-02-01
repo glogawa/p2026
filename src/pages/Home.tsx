@@ -1,12 +1,15 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonRow, IonCol, IonGrid, IonIcon, IonBadge } from '@ionic/react';
 import { gameControllerOutline, personOutline, linkOutline } from 'ionicons/icons';
-import ToggleLightDark from '../components/utils/toggleLightDark';
 import PageHeader from '../components/PageHeader';
 import './Home.css';
 
 const Home: React.FC = () => {
   const credits = [
-    { name: 'LaSalle College Jakarta'},
+    { name: 'LaSalle College Jakarta' },
+    { name: 'Alfian Anjar' },
+    { name: 'Garda Logawa' },
+    { name: 'Giovanni Nian Gani' },
+    { name: 'Neila Faaizah Asynur' }
   ];
 
   return (
@@ -83,17 +86,15 @@ const Home: React.FC = () => {
               </IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
-              <IonGrid>
-                {credits.map((member, index) => (
-                  <IonRow key={index} className="credit-row">
-                    <IonCol size="12">
-                      <div className="credit-item">
-                        <p className="credit-name">{member.name}</p>
-                      </div>
-                    </IonCol>
-                  </IonRow>
-                ))}
-              </IonGrid>
+              <div className="credit-item">
+                <div className="credit-list">
+                  {credits.map((member, index) => (
+                    <span key={index} className="credit-name">
+                      {member.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <img src="/nuon.png" alt="Nuon Logo" className="nuon-logo" style={{ width: '80px', height: 'auto' }} />
               <p className="credit-note">
                 Thank you to all team members who contributed their time, passion and talent to this project during the 48-hour jam!
@@ -110,22 +111,22 @@ const Home: React.FC = () => {
               </IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
-              <IonButton 
-                expand="block" 
-                fill="outline" 
+              <IonButton
+                expand="block"
+                fill="outline"
                 color="primary"
-                href="https://globalgamejam.org" 
+                href="https://globalgamejam.org"
                 target="_blank"
                 className="link-button"
               >
                 <IonIcon icon={linkOutline} slot="start" />
                 Global Game Jam Website
               </IonButton>
-              <IonButton 
-                expand="block" 
-                fill="outline" 
+              <IonButton
+                expand="block"
+                fill="outline"
                 color="primary"
-                href="https://globalgamejam.org/2026/" 
+                href="https://globalgamejam.org/2026/"
                 target="_blank"
                 className="link-button"
               >
