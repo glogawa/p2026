@@ -4,9 +4,10 @@ import '../ui.css';
 interface LoseScreenProps {
   onPlayAgain: () => void;
   loseReason?: 'thief' | 'recognized';
+  score?: number;
 }
 
-export function LoseScreen({ onPlayAgain, loseReason = 'thief' }: LoseScreenProps) {
+export function LoseScreen({ onPlayAgain, loseReason = 'thief', score = 0 }: LoseScreenProps) {
   const getTitle = () => {
     return 'You Lose!';
   };
@@ -35,6 +36,9 @@ export function LoseScreen({ onPlayAgain, loseReason = 'thief' }: LoseScreenProp
         <IonCardContent>
           <h2 style={{ marginTop: 0, marginBottom: '15px' }}>{getTitle()}</h2>
           {getMessage()}
+          <p style={{ textAlign: 'center', margin: '20px 0', fontSize: '1.2em' }}>
+            {score}
+          </p>
           <IonButton className="glass-button" onClick={onPlayAgain} style={{ marginTop: '20px' }}>
             Play Again
           </IonButton>
